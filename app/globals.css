@@ -2,13 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* All colors are HSL. Theme switches by adding/removing `.dark` on <html>. */
 
 @layer base {
   :root {
-    /* Nature-inspired color palette with warmer tones */
+    /* Light (Nature) */
     --background: 45 25% 96%;
     --foreground: 150 20% 18%;
 
@@ -18,18 +16,15 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 150 20% 18%;
 
-    /* Rich forest green primary */
     --primary: 145 70% 32%;
     --primary-foreground: 0 0% 98%;
 
-    /* Warm sage secondary */
     --secondary: 140 30% 85%;
     --secondary-foreground: 150 20% 18%;
 
     --muted: 140 25% 90%;
     --muted-foreground: 150 15% 42%;
 
-    /* Vibrant accent */
     --accent: 135 45% 68%;
     --accent-foreground: 150 20% 18%;
 
@@ -42,69 +37,54 @@ All colors MUST be HSL.
 
     --radius: 1rem;
 
-    /* Custom gradient stops */
-    --gradient-from: 145 70% 32%;
-    --gradient-to: 0 0% 98%;
-    --gradient-nature: linear-gradient(135deg, hsl(145 70% 32%) 0%, hsl(135 45% 68%) 100%);
-    --gradient-soft: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(140 30% 85%) 100%);
+    /* Gradients */
+    --gradient-nature: linear-gradient(
+      135deg,
+      hsl(145 70% 32%) 0%,
+      hsl(135 45% 68%) 100%
+    );
 
-    /* Custom shadows */
-    --shadow-sm: 0 2px 8px hsl(145 65% 35% / 0.08);
-    --shadow-md: 0 4px 16px hsl(145 65% 35% / 0.12);
-    --shadow-lg: 0 8px 24px hsl(145 65% 35% / 0.16);
+    --gradient-soft: linear-gradient(
+      180deg,
+      hsl(0 0% 100%) 0%,
+      hsl(140 30% 85%) 100%
+    );
 
-    /* Transitions */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Optional chart palette */
+    --chart-1: 145 70% 32%;
+    --chart-2: 135 45% 55%;
+    --chart-3: 160 35% 35%;
+    --chart-4: 45 80% 55%;
+    --chart-5: 20 85% 60%;
   }
 
-  .dark {
-    --background: 150 20% 12%;
-    --foreground: 140 20% 92%;
-
-    --card: 150 15% 15%;
-    --card-foreground: 140 20% 92%;
-
-    --popover: 150 15% 15%;
-    --popover-foreground: 140 20% 92%;
-
-    --primary: 145 60% 45%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 150 20% 20%;
-    --secondary-foreground: 140 20% 92%;
-
-    --muted: 150 15% 18%;
-    --muted-foreground: 140 15% 60%;
-
-    --accent: 135 30% 35%;
-    --accent-foreground: 140 20% 92%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 150 15% 18%;
-    --input: 150 15% 18%;
-    --ring: 145 60% 45%;
-  }
+  
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
 }
+
 @layer utilities {
   .bg-gradient-nature {
     background-image: var(--gradient-nature);
-    background-color: hsl(var(--primary)); /* fallback */
+    background-color: hsl(var(--primary));
   }
 
   .bg-gradient-soft {
     background-image: var(--gradient-soft);
-    background-color: hsl(var(--background)); /* fallback */
+    background-color: hsl(var(--background));
   }
+}
+
+/* If you use view transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }

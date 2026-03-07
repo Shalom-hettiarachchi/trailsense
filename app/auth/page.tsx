@@ -122,7 +122,6 @@ export default function AuthPage() {
 
     try {
       const url = isLogin ? "/api/auth/login" : "/api/auth/signup";
-
       const body = isLogin ? { email, password } : { email, password, fullName };
 
       const res = await fetch(url, {
@@ -134,11 +133,25 @@ export default function AuthPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const msg = data?.message || "Authentication failed";
+        const msg = data?.message || data?.error || "Authentication failed";
         throw new Error(msg);
       }
 
-      router.push("/dashboard");
+      // ✅ ROLE-BASED REDIRECT
+      if (isLogin) {
+        const role = data?.user?.role;
+
+        if (role === "admin" || role === "guide") {
+          router.push("/dashboard");
+        } else {
+          router.push("/");
+        }
+      } else {
+        // after signup → normal users go to overview
+        router.push("/");
+      }
+
+      router.refresh();
     } catch (err: any) {
       const msg = err?.message || "Something went wrong";
       mapServerErrorToFields(msg);
@@ -180,9 +193,7 @@ export default function AuthPage() {
                     placeholder="e.g. Shalom Hettiarachchi"
                     required
                   />
-                  {nameError && (
-                    <p className="text-xs text-red-500">{nameError}</p>
-                  )}
+                  {nameError && <p className="text-xs text-red-500">{nameError}</p>}
                 </div>
               )}
 
@@ -196,9 +207,7 @@ export default function AuthPage() {
                   placeholder="you@example.com"
                   required
                 />
-                {emailError && (
-                  <p className="text-xs text-red-500">{emailError}</p>
-                )}
+                {emailError && <p className="text-xs text-red-500">{emailError}</p>}
               </div>
 
               {/* PASSWORD */}
@@ -221,20 +230,14 @@ export default function AuthPage() {
                     onClick={() => setShowPassword((v) => !v)}
                     tabIndex={-1}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
 
                 {passwordError ? (
                   <p className="text-xs text-red-500">{passwordError}</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Minimum 6 characters.
-                  </p>
+                  <p className="text-xs text-muted-foreground">Minimum 6 characters.</p>
                 )}
               </div>
 

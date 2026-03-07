@@ -26,25 +26,34 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroImage.src})` }}
-
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background/70" />
-
+          {/* Dark overlay for better contrast */}
+          <div className="absolute inset-0 " />
         </div>
+
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
             Plan Your Hike Here
           </h1>
-          <p className="text-lg md:text-xl text-foreground/90 max-w-3xl mx-auto mb-8 leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-150">
+
+          <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto mb-8 leading-relaxed">
             Explore our collection of Sri Lanka&apos;s most stunning hiking trails — from mist-covered peaks to
             hidden jungle paths. Each trail offers a unique story and breathtaking views. Choose your hike and
             plan every step easily, from permits to transport.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="hero" size="xl" asChild>
               <Link href="/hikes">Explore Hikes</Link>
             </Button>
-            <Button variant="adventure" size="xl" asChild>
+
+            {/* Force white text for this button */}
+            <Button
+              variant="adventure"
+              size="xl"
+              asChild
+              className="text-white"
+            >
               <Link href="/planner">Plan My Hike</Link>
             </Button>
           </div>

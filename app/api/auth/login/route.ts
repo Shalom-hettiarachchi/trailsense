@@ -12,21 +12,38 @@ export async function POST(req: Request) {
   }
 
   await connectDB();
-  const user = await User.findOne({ email });
 
-  if (!user) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+  if (!user) {
+    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  }
 
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  const ok = await bcrypt.compare(String(password), user.passwordHash);
+  if (!ok) {
+    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  }
 
-  const token = await signToken({ userId: user._id.toString(), role: user.role });
+  const token = await signToken({
+    userId: user._id.toString(),
+    role: user.role,
+  });
 
-  const res = NextResponse.json({ ok: true });
+  const res = NextResponse.json({
+    ok: true,
+    user: {
+      id: user._id.toString(),
+      email: user.email,
+      fullName: user.fullName ?? "",
+      role: user.role, // "user" | "admin" | "guide"
+    },
+  });
+
   res.cookies.set("token", token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
   });
+
   return res;
 }

@@ -64,6 +64,7 @@ export default function UserDashboard({ user }: UserDashboardProps) {
     const bookingsJson = await bookingsRes.json().catch(() => ({}));
     if (!bookingsRes.ok) throw new Error(bookingsJson?.message || "Failed to load bookings");
 
+    
     return Array.isArray(bookingsJson?.bookings) ? bookingsJson.bookings : [];
   };
 
