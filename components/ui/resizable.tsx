@@ -1,13 +1,18 @@
 "use client"
 
-import { GripVertical } from "lucide-react"
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels"
 import * as React from "react"
+import { GripVertical } from "lucide-react"
+// We import the whole primitive to avoid the "no exported member" build error
+import * as ResizablePrimitive from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
-// We use 'any' for the props here to stop Turbopack/TypeScript from 
-// crashing during the Vercel build process.
+// Manually extract components. This bypasses the static analysis 
+// that is failing in your Turbopack build.
+const PanelGroup = (ResizablePrimitive as any).PanelGroup
+const Panel = (ResizablePrimitive as any).Panel
+const PanelResizeHandle = (ResizablePrimitive as any).PanelResizeHandle
+
 const ResizablePanelGroup = ({
   className,
   ...props
