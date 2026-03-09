@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react"; // Added Suspense
 import { useSearchParams, useRouter } from "next/navigation";
 
 import Navigation from "@/components/Navigation";
@@ -32,7 +32,6 @@ const steps = [
   { id: 6, name: "Review & Confirm" },
 ];
 
-// Transport options (still static)
 const transportOptions = [
   {
     id: "none",
@@ -97,7 +96,8 @@ type RentalDTO = {
   isActive?: boolean;
 };
 
-export default function PlannerPage() {
+// --- Sub-component to handle the dynamic logic ---
+function PlannerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedHikeSlug = searchParams.get("hike"); // slug
@@ -169,7 +169,6 @@ export default function PlannerPage() {
           (Array.isArray(rJson?.rentalItems) && rJson.rentalItems) ||
           (Array.isArray(rJson?.data) && rJson.data) ||
           [];
-
 
         setHikes(hikeList.filter((h: any) => h?.isActive !== false));
         setRentals(rentalList.filter((x: any) => x?.isActive !== false));
@@ -799,35 +798,44 @@ export default function PlannerPage() {
   };
 
   return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{steps[currentStep - 1].name}</CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        {renderStepContent()}
+        {stepError && <p className="mt-4 text-sm text-red-500">{stepError}</p>}
+      </CardContent>
+
+      <div className="flex justify-between p-6 pt-0">
+        <Button variant="outline" onClick={handleBack} disabled={currentStep === 1}>
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+
+        {currentStep < steps.length && (
+          <Button onClick={handleNext}>
+            Next
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// --- Main Page component with Suspense wrapper ---
+export default function PlannerPage() {
+  return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
 
       <main className="flex-1 py-12">
         <div className="max-w-4xl mx-auto px-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{steps[currentStep - 1].name}</CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              {renderStepContent()}
-              {stepError && <p className="mt-4 text-sm text-red-500">{stepError}</p>}
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={handleBack} disabled={currentStep === 1}>
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-
-            {currentStep < steps.length && (
-              <Button onClick={handleNext}>
-                Next
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <Suspense fallback={<div className="text-center py-20 text-muted-foreground">Initializing planner...</div>}>
+            <PlannerContent />
+          </Suspense>
         </div>
       </main>
 
