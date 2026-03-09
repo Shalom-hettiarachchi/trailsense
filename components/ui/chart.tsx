@@ -94,13 +94,18 @@ const ChartTooltip = RechartsPrimitive.Tooltip
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, "payload"> & {
+    Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, "payload" | "label"> & {
       hideLabel?: boolean
       hideIndicator?: boolean
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
       payload?: any[]
+      label?: any
+      labelFormatter?: any
+      labelClassName?: string
+      formatter?: any
+      color?: string
     }
 >(
   (
@@ -288,7 +293,6 @@ const ChartLegendContent = React.forwardRef<
 })
 ChartLegendContent.displayName = "ChartLegend"
 
-// Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
   if (typeof payload !== "object" || payload === null) {
     return undefined
