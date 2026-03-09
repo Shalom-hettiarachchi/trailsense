@@ -7,8 +7,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Mountain, Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+
+// Define the User type to match your MongoDB data
+type User = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: "admin" | "guide" | "user";
+};
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -16,24 +22,41 @@ export default function Navigation() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Use your actual MongoDB Auth API instead of Supabase
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    let alive = true;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) {
+          if (alive) setUser(null);
+          return;
+        }
+        const data = await res.json();
+        if (alive) setUser(data.user ?? null);
+      } catch (error) {
+        if (alive) setUser(null);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
 
-    return () => subscription.unsubscribe();
-  }, []);
+    checkAuth();
+    return () => { alive = false; };
+  }, [pathname]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   };
 
   const navLinks = [
@@ -71,23 +94,27 @@ export default function Navigation() {
               </Link>
             ))}
 
-            {user ? (
+            {!loading && (
               <>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/auth">Sign In</Link>
-                </Button>
-                <Button variant="hero" size="default" asChild>
-                  <Link href="/planner">Book Now</Link>
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/dashboard">Dashboard</Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/auth">Sign In</Link>
+                    </Button>
+                    <Button variant="hero" size="default" asChild>
+                      <Link href="/planner">Book Now</Link>
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -122,36 +149,40 @@ export default function Navigation() {
                 </Link>
               ))}
 
-              {user ? (
+              {!loading && (
                 <>
-                  <Button variant="outline" className="mx-4" asChild>
-                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                      Dashboard
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="mx-4"
-                    onClick={() => {
-                      handleSignOut();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" className="mx-4" asChild>
-                    <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
-                      Sign In
-                    </Link>
-                  </Button>
-                  <Button variant="hero" className="mx-4" asChild>
-                    <Link href="/planner" onClick={() => setMobileMenuOpen(false)}>
-                      Book Now
-                    </Link>
-                  </Button>
+                  {user ? (
+                    <>
+                      <Button variant="outline" className="mx-4" asChild>
+                        <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                          Dashboard
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="mx-4"
+                        onClick={() => {
+                          handleSignOut();
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" className="mx-4" asChild>
+                        <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
+                          Sign In
+                        </Link>
+                      </Button>
+                      <Button variant="hero" className="mx-4" asChild>
+                        <Link href="/planner" onClick={() => setMobileMenuOpen(false)}>
+                          Book Now
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </div>
