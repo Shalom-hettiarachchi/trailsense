@@ -43,10 +43,10 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         day_hidden: "invisible",
         ...classNames,
       }}
-      // CHANGED: Using the v9 compatible 'Icon' object logic
       components={{
-        IconLeft: (props) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: (props) => <ChevronRight className="h-4 w-4" />,
+        // Fixed: Removed 'props' parameter to satisfy strict null/any checks
+        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+        IconRight: () => <ChevronRight className="h-4 w-4" />,
       } as any}
       {...props}
     />
