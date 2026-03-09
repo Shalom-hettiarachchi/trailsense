@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Mountain, Menu, X, LogOut, User, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-
+// Define the User type used by your MongoDB Auth API
 type MeUser = {
   id: string;
   email: string;
@@ -24,7 +24,6 @@ export default function Navigation() {
   const [user, setUser] = useState<MeUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // profile dropdown
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
@@ -36,6 +35,7 @@ export default function Navigation() {
     { name: "Contact", path: "/contact" },
   ];
 
+  // Fetch user data from your custom MongoDB API route
   useEffect(() => {
     let alive = true;
 
@@ -44,30 +44,24 @@ export default function Navigation() {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
 
         if (!res.ok) {
-          if (!alive) return;
-          setUser(null);
+          if (alive) setUser(null);
           return;
         }
 
         const data = await res.json();
-        if (!alive) return;
-
-        setUser(data.user ?? null);
+        if (alive) setUser(data.user ?? null);
       } catch {
-        if (!alive) return;
-        setUser(null);
+        if (alive) setUser(null);
       } finally {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     }
 
     checkMe();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [pathname]);
 
+  // Close profile dropdown on outside click
   useEffect(() => {
     function onDown(e: MouseEvent) {
       if (!profileRef.current) return;
@@ -112,22 +106,16 @@ export default function Navigation() {
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
+          {/* Dynamic Logo Link based on Role */}
           <Link
-            href={
-              user?.role === "admin"
-                ? "/dashboard"
-                : user?.role === "guide"
-                ? "/dashboard"
-                : "/"
-            }
+            href={user?.role === "admin" || user?.role === "guide" ? "/dashboard" : "/"}
             className="flex items-center gap-2 text-primary hover:text-primary/80"
           >
             <Mountain className="h-7 w-7" />
             <span className="text-xl font-bold">TrailSense</span>
           </Link>
 
-          {/* Desktop */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             {showUserLinks &&
               userLinks.map((link) => (
@@ -147,22 +135,18 @@ export default function Navigation() {
               <>
                 {user ? (
                   <div className="flex items-center gap-3">
-                    {/* Dashboard */}
                     <Button variant="outline" size="sm" asChild>
                       <Link href="/dashboard">Dashboard</Link>
                     </Button>
 
-                    {/* Profile dropdown */}
                     <div className="relative" ref={profileRef}>
                       <button
                         type="button"
                         onClick={() => setProfileOpen((v) => !v)}
                         className={cn(
-                          "h-9 w-9 rounded-full border flex items-center justify-center",
-                          "bg-background hover:bg-accent transition",
+                          "h-9 w-9 rounded-full border flex items-center justify-center bg-background hover:bg-accent transition",
                           profileOpen ? "ring-2 ring-primary/30" : ""
                         )}
-                        aria-label="Open profile menu"
                       >
                         <span className="text-sm font-semibold">{initials}</span>
                       </button>
@@ -173,33 +157,15 @@ export default function Navigation() {
                             <p className="text-sm font-semibold">{user.fullName || "User"}</p>
                             <p className="text-xs text-muted-foreground break-all">{user.email}</p>
                           </div>
-
                           <div className="p-1">
-                            <Link
-                              href="/profile"
-                              onClick={() => setProfileOpen(false)}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-accent"
-                            >
-                              <User className="h-4 w-4" />
-                              Profile
+                            <Link href="/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-accent">
+                              <User className="h-4 w-4" /> Profile
                             </Link>
-
-                            <Link
-                              href="/dashboard"
-                              onClick={() => setProfileOpen(false)}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-accent"
-                            >
-                              <LayoutDashboard className="h-4 w-4" />
-                              Dashboard
+                            <Link href="/dashboard" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-accent">
+                              <LayoutDashboard className="h-4 w-4" /> Dashboard
                             </Link>
-
-                            <button
-                              type="button"
-                              onClick={handleLogout}
-                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-accent text-left"
-                            >
-                              <LogOut className="h-4 w-4" />
-                              Logout
+                            <button type="button" onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-accent text-left">
+                              <LogOut className="h-4 w-4" /> Logout
                             </button>
                           </div>
                         </div>
@@ -208,11 +174,9 @@ export default function Navigation() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-
                     <Button variant="outline" size="sm" asChild>
                       <Link href="/auth">Sign In</Link>
                     </Button>
-
                     <Button variant="hero" size="default" asChild>
                       <Link href="/planner">Book Now</Link>
                     </Button>
@@ -222,7 +186,7 @@ export default function Navigation() {
             )}
           </div>
 
-          {/* Mobile toggle */}
+          {/* Mobile Toggle */}
           <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X /> : <Menu />}
           </button>
@@ -247,46 +211,31 @@ export default function Navigation() {
                   </Link>
                 ))}
 
-              <div className="px-4 pt-2">
-              </div>
-
               {!loading && (
-                <>
+                <div className="flex flex-col gap-2 mt-2">
                   {user ? (
                     <>
                       <Button variant="outline" className="mx-4" asChild>
-                        <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
-                          Profile
-                        </Link>
+                        <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>Profile</Link>
                       </Button>
-
                       <Button variant="outline" className="mx-4" asChild>
-                        <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                          Dashboard
-                        </Link>
+                        <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
                       </Button>
-
-                      <Button variant="ghost" className="mx-4" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Logout
+                      <Button variant="ghost" className="mx-4 justify-start" onClick={handleLogout}>
+                        <LogOut className="h-4 w-4 mr-2" /> Logout
                       </Button>
                     </>
                   ) : (
                     <>
                       <Button variant="outline" className="mx-4" asChild>
-                        <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
-                          Sign In
-                        </Link>
+                        <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
                       </Button>
-
                       <Button variant="hero" className="mx-4" asChild>
-                        <Link href="/planner" onClick={() => setMobileMenuOpen(false)}>
-                          Book Now
-                        </Link>
+                        <Link href="/planner" onClick={() => setMobileMenuOpen(false)}>Book Now</Link>
                       </Button>
                     </>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
