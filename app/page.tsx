@@ -7,18 +7,15 @@ import Footer from "@/components/Footer";
 import HikeCard from "@/components/HikeCard";
 
 import { hikes } from "@/data/hikes";
-import { Target, Map, Shield } from "lucide-react";
+import { Target, Map, Shield, Bot, Sparkles } from "lucide-react"; // Added Bot and Sparkles
 
 import heroImage from "@/assets/hero-mountains.png";
-
-
 
 export default function Home() {
   const featuredHikes = hikes;
 
   return (
-    
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative"> {/* Added relative here */}
       <Navigation />
 
       {/* Hero Section */}
@@ -27,7 +24,6 @@ export default function Home() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroImage.src})` }}
         >
-          {/* Dark overlay for better contrast */}
           <div className="absolute inset-0 " />
         </div>
 
@@ -47,7 +43,6 @@ export default function Home() {
               <Link href="/hikes">Explore Hikes</Link>
             </Button>
 
-            {/* Force white text for this button */}
             <Button
               variant="adventure"
               size="xl"
@@ -135,6 +130,26 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Floating AI Fitness Checker Button */}
+      <div className="fixed bottom-8 right-8 z-50 group">
+        <Link href="/fitness-check">
+          <Button 
+            size="lg" 
+            className="rounded-full w-16 h-16 shadow-2xl bg-primary hover:bg-primary/90 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+          >
+            <div className="relative">
+              <Bot className="h-8 w-8 text-primary-foreground" />
+              <Sparkles className="h-4 w-4 text-yellow-300 absolute -top-2 -right-2 animate-pulse" />
+            </div>
+            
+            {/* Tooltip for hover */}
+            <span className="absolute right-20 bg-card text-foreground px-4 py-2 rounded-lg shadow-xl text-sm font-medium border opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Check Hiking Fitness
+            </span>
+          </Button>
+        </Link>
+      </div>
 
       <Footer />
     </div>

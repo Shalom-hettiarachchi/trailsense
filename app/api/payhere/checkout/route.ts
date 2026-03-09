@@ -48,13 +48,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CRITICAL: PayHere order_id must be your Mongo booking _id
+    // CRITICAL: PayHere order_id must be your Mongo booking _id
     const orderId = booking._id.toString();
 
     const currency = "LKR";
     const amountStr = formatAmount(amount);
 
-    // ✅ PayHere hash formula:
+    // PayHere hash formula:
     // md5(merchant_id + order_id + amount + currency + md5(merchant_secret).toUpperCase()).toUpperCase()
     const secretHash = md5(merchantSecret).toUpperCase();
     const hash = md5(merchantId + orderId + amountStr + currency + secretHash).toUpperCase();
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       return_url: `${appUrl}/payment/success?bookingId=${encodeURIComponent(orderId)}`,
       cancel_url: `${appUrl}/payment/cancel?bookingId=${encodeURIComponent(orderId)}`,
 
-      // ✅ IMPORTANT: notify_url must be reachable by PayHere (NOT localhost)
+      // IMPORTANT: notify_url must be reachable by PayHere (NOT localhost)
       notify_url: `${appUrl}/api/payhere/notify`,
 
       order_id: orderId,

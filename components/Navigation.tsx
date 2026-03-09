@@ -113,7 +113,16 @@ export default function Navigation() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/80">
+          <Link
+            href={
+              user?.role === "admin"
+                ? "/dashboard"
+                : user?.role === "guide"
+                ? "/dashboard"
+                : "/"
+            }
+            className="flex items-center gap-2 text-primary hover:text-primary/80"
+          >
             <Mountain className="h-7 w-7" />
             <span className="text-xl font-bold">TrailSense</span>
           </Link>

@@ -80,6 +80,8 @@ type Booking = {
   pickupLocation?: string;
 
   totalCost?: number;
+  baseHikeFee?: number
+  rentalFee?: number
 };
 
 function toMoney(n: number) {
@@ -222,7 +224,7 @@ export default function AdminDashboardPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || `Request failed (${res.status})`);
 
-      // ✅ refresh without unmount -> no scroll jump
+      // refresh without unmount -> no scroll jump
       await fetchDashboardData("refresh");
     } catch (e: any) {
       setError(e?.message || "Failed to update booking");
@@ -290,30 +292,34 @@ export default function AdminDashboardPage() {
     }
 
     bookings.forEach((b) => {
-      const d = safeDate(b.createdAt || b.bookingDate || b.hikeDate) || null;
-      const cost = Number(b.totalCost || 0);
+  const d = safeDate(b.createdAt || b.bookingDate || b.hikeDate) || null;
 
-      // bookings per day
-      if (d) {
-        const key = ymd(d);
-        if (bookingsByDay.has(key)) {
-          bookingsByDay.set(key, (bookingsByDay.get(key) || 0) + 1);
-        }
-      }
+  // Admin profit = hike fee + rental fee only
+  const cost =
+    Number(b.totalCost || 0)
 
-      if (!isRevenueBooking(b)) return;
+  // bookings per day
+  if (d) {
+    const key = ymd(d);
+    if (bookingsByDay.has(key)) {
+      bookingsByDay.set(key, (bookingsByDay.get(key) || 0) + 1);
+    }
+  }
 
-      totalRevenue += cost;
+  if (!isRevenueBooking(b)) return;
 
-      if (d) {
-        const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDays <= 7) weeklyRevenue += cost;
-        if (diffDays <= 30) monthlyRevenue += cost;
+  totalRevenue += cost;
 
-        const mKey = monthKey(d);
-        revenueByMonth.set(mKey, (revenueByMonth.get(mKey) || 0) + cost);
-      }
-    });
+  if (d) {
+    const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays <= 7) weeklyRevenue += cost;
+    if (diffDays <= 30) monthlyRevenue += cost;
+
+    const mKey = monthKey(d);
+    revenueByMonth.set(mKey, (revenueByMonth.get(mKey) || 0) + cost);
+  }
+});
 
     // last 6 months chart
     const months: string[] = [];
@@ -339,12 +345,19 @@ export default function AdminDashboardPage() {
     const hikeCount = new Map<string, number>();
     const hikeRevenue = new Map<string, number>();
 
-    bookings.forEach((b) => {
-      hikeCount.set(b.hikeName, (hikeCount.get(b.hikeName) || 0) + 1);
-      if (isRevenueBooking(b)) {
-        hikeRevenue.set(b.hikeName, (hikeRevenue.get(b.hikeName) || 0) + Number(b.totalCost || 0));
-      }
-    });
+   bookings.forEach((b) => {
+    hikeCount.set(b.hikeName, (hikeCount.get(b.hikeName) || 0) + 1);
+
+    if (isRevenueBooking(b)) {
+      const profit =
+        Number(b.totalCost || 0)
+
+      hikeRevenue.set(
+        b.hikeName,
+        (hikeRevenue.get(b.hikeName) || 0) + profit
+      );
+    }
+  });
 
     const topHikes = Array.from(hikeCount.entries())
       .map(([name, count]) => ({
@@ -361,10 +374,18 @@ export default function AdminDashboardPage() {
     const userLabel = (b: Booking) => b.customerName || b.customerEmail || b.userId || "Unknown";
 
     bookings.forEach((b) => {
-      const id = b.userId || "unknown";
+     const id = b.userId || "unknown";
+
       userCount.set(id, (userCount.get(id) || 0) + 1);
+
       if (isRevenueBooking(b)) {
-        userRevenue.set(id, (userRevenue.get(id) || 0) + Number(b.totalCost || 0));
+        const profit =
+          Number(b.totalCost || 0)
+
+        userRevenue.set(
+          id,
+          (userRevenue.get(id) || 0) + profit
+        );
       }
     });
 
@@ -408,7 +429,9 @@ export default function AdminDashboardPage() {
         return db - da;
       });
 
-    const revenue = list.filter(isRevenueBooking).reduce((s, b) => s + Number(b.totalCost || 0), 0);
+    const revenue = list
+      .filter(isRevenueBooking)
+      .reduce((s, b) => s + Number(b.totalCost || 0), 0);
 
     const label = list[0]?.customerName || list[0]?.customerEmail || list[0]?.userId || selectedUserId;
 
@@ -682,7 +705,7 @@ export default function AdminDashboardPage() {
 
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit/Revenue (Confirmed)</CardTitle>
+            <CardTitle className="text-sm font-medium">Platform Profit (Hike Fee + Rentals)</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

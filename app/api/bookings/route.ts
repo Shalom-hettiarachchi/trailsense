@@ -5,9 +5,6 @@ import Booking from "@/models/Booking";
 import { User } from "@/models/User";
 import Hike from "@/models/Hike";
 
-// ============================
-// GET /api/bookings?userId=xxx&status=confirmed OR ?bookingId=xxx
-// ============================
 export async function GET(req: Request) {
   await connectDB();
 
@@ -15,9 +12,19 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const bookingId = searchParams.get("bookingId");
+
+    // ============================
+    // GET SINGLE BOOKING
+    // ============================
+
     if (bookingId) {
       const b: any = await Booking.findById(bookingId);
-      if (!b) return NextResponse.json({ message: "Booking not found" }, { status: 404 });
+
+      if (!b)
+        return NextResponse.json(
+          { message: "Booking not found" },
+          { status: 404 }
+        );
 
       return NextResponse.json({
         booking: {
@@ -65,16 +72,25 @@ export async function GET(req: Request) {
     const status = searchParams.get("status");
 
     const query: any = {};
+
     if (userId) query.userId = userId;
 
     if (status) {
       if (!["pending", "confirmed", "cancelled"].includes(status)) {
-        return NextResponse.json({ message: "Invalid status" }, { status: 400 });
+        return NextResponse.json(
+          { message: "Invalid status" },
+          { status: 400 }
+        );
       }
+
       query.status = status;
     }
 
     const bookings = await Booking.find(query).sort({ createdAt: -1 });
+
+    // ============================
+    // RETURN BOOKINGS LIST
+    // ============================
 
     return NextResponse.json({
       bookings: bookings.map((b: any) => ({
@@ -104,9 +120,15 @@ export async function GET(req: Request) {
         pickupLocation: b.pickupLocation,
         distanceKm: b.distanceKm,
 
+        // ⭐ IMPORTANT (FOR ADMIN + GUIDE DASHBOARDS)
+
+        hikeFee: b.hikeFee,
+        gearCost: b.gearCost,
+        guideCost: b.guideCost,
+        transportCost: b.transportCost,
+
         totalCost: b.totalCost,
 
-        // optional (you said you may remove later)
         paymentStatus: b.paymentStatus,
       })),
     });
@@ -119,8 +141,9 @@ export async function GET(req: Request) {
 }
 
 // ============================
-// POST /api/bookings
+// CREATE BOOKING
 // ============================
+
 export async function POST(req: Request) {
   await connectDB();
 
@@ -151,18 +174,39 @@ export async function POST(req: Request) {
     } = body || {};
 
     if (!userId || !String(userId).trim()) {
-      return NextResponse.json({ message: "Login required" }, { status: 401 });
+      return NextResponse.json(
+        { message: "Login required" },
+        { status: 401 }
+      );
     }
 
-    if (!hikeId) return NextResponse.json({ message: "Please select a hike" }, { status: 400 });
-    if (!hikeDate) return NextResponse.json({ message: "Please select a date" }, { status: 400 });
-    if (!hikeTime) return NextResponse.json({ message: "Please select a time" }, { status: 400 });
+    if (!hikeId)
+      return NextResponse.json(
+        { message: "Please select a hike" },
+        { status: 400 }
+      );
+
+    if (!hikeDate)
+      return NextResponse.json(
+        { message: "Please select a date" },
+        { status: 400 }
+      );
+
+    if (!hikeTime)
+      return NextResponse.json(
+        { message: "Please select a time" },
+        { status: 400 }
+      );
 
     if (!contactPhone || !String(contactPhone).trim()) {
-      return NextResponse.json({ message: "Please enter your contact number" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Please enter your contact number" },
+        { status: 400 }
+      );
     }
 
     const size = Number(groupSize);
+
     if (!size || size < 1 || size > 20) {
       return NextResponse.json(
         { message: "Group size must be between 1 and 20" },
@@ -170,11 +214,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ IMPORTANT FIX:
-    // accept hikeId as:
-    // - Mongo ObjectId
-    // - slug
-    // - name
     const hikeIdStr = String(hikeId).trim();
 
     let hike: any = null;
@@ -193,18 +232,16 @@ export async function POST(req: Request) {
 
     if (!hike || hike.isActive === false) {
       return NextResponse.json(
-        {
-          message: "Invalid hike selected",
-          debug: { hikeIdReceived: hikeIdStr }, // helpful for you while testing
-        },
+        { message: "Invalid hike selected" },
         { status: 400 }
       );
     }
 
     const userDoc = await User.findById(userId).select("fullName email");
+
     if (!userDoc) {
       return NextResponse.json(
-        { message: "User not found. Please login again." },
+        { message: "User not found" },
         { status: 401 }
       );
     }
@@ -212,31 +249,33 @@ export async function POST(req: Request) {
     const fallbackName = userDoc.fullName || "Explorer";
     const fallbackEmail = userDoc.email || "";
 
-    if (hike.permitRequired) {
-      if (!permitName?.trim()) return NextResponse.json({ message: "Permit name is required" }, { status: 400 });
-      if (!permitEmail?.trim()) return NextResponse.json({ message: "Permit email is required" }, { status: 400 });
-    }
-
     const t = transport || "none";
-    if (t !== "none" && !pickupLocation?.trim()) {
-      return NextResponse.json({ message: "Pickup location is required for transport" }, { status: 400 });
-    }
 
-    // ✅ Pricing fallback uses DB hike.baseFee if planner doesn't send it
-    const hikeFee = Number(priceBreakdown?.hikeBaseFee ?? body?.hikeFee ?? hike?.baseFee ?? 0);
-    const gearCost = Number(priceBreakdown?.rentalsFee ?? body?.gearCost ?? 0);
-    const guideCost = Number(priceBreakdown?.guideFee ?? body?.guideCost ?? 0);
-    const tCost = Number(priceBreakdown?.transportCost ?? transportCost ?? 0);
+    const hikeFee = Number(
+      priceBreakdown?.hikeBaseFee ?? body?.hikeFee ?? hike?.baseFee ?? 0
+    );
+
+    const gearCost = Number(
+      priceBreakdown?.rentalsFee ?? body?.gearCost ?? 0
+    );
+
+    const guideCost = Number(
+      priceBreakdown?.guideFee ?? body?.guideCost ?? 0
+    );
+
+    const tCost = Number(
+      priceBreakdown?.transportCost ?? transportCost ?? 0
+    );
 
     const totalCost = Number(
-      priceBreakdown?.total ?? body?.totalCost ?? hikeFee + gearCost + guideCost + tCost
+      priceBreakdown?.total ??
+        body?.totalCost ??
+        hikeFee + gearCost + guideCost + tCost
     );
 
     const booking = await Booking.create({
       userId,
 
-      // store BOTH: hikeId (what user sent) + hikeName (from DB)
-      // best: store hikeId as hike.slug for consistency
       hikeId: hike.slug || hikeIdStr,
       hikeName: hike.name,
 
@@ -244,6 +283,7 @@ export async function POST(req: Request) {
       hikeTime,
 
       bookingDate: new Date(),
+
       numberOfPeople: size,
 
       customerName: (permitName && permitName.trim()) || fallbackName,
@@ -251,6 +291,7 @@ export async function POST(req: Request) {
       customerPhone: String(contactPhone).trim(),
 
       gearQty: gearQty && typeof gearQty === "object" ? gearQty : {},
+
       guide: guide || "none",
 
       transport: t,
@@ -262,9 +303,11 @@ export async function POST(req: Request) {
       gearCost,
       guideCost,
       transportCost: tCost,
+
       totalCost,
 
       status: "pending",
+
       paymentProvider: "payhere",
       paymentStatus: "unpaid",
     });

@@ -52,6 +52,8 @@ type Booking = {
   transport?: string;
   pickupLocation?: string;
   gear?: string[];
+
+  guideCost?: number; // ⭐ GUIDE PROFIT FIELD
 };
 
 interface GuideDashboardProps {
@@ -74,17 +76,23 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
       try {
         setLoading(true);
 
-        // ✅ confirmed bookings only
-        const res = await fetch("/api/bookings?status=confirmed", { cache: "no-store" });
+        const res = await fetch("/api/bookings?status=confirmed", {
+          cache: "no-store",
+        });
+
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.message || `Request failed (${res.status})`);
 
-        const list: Booking[] = Array.isArray(data?.bookings) ? data.bookings : [];
+        if (!res.ok)
+          throw new Error(data?.message || `Request failed (${res.status})`);
 
-        // ✅ only those where user selected a guide package (basic/expert)
+        const list: Booking[] = Array.isArray(data?.bookings)
+          ? data.bookings
+          : [];
+
         const withGuide = list.filter((b) => (b.guide || "none") !== "none");
 
         if (!alive) return;
+
         setItems(withGuide);
       } catch {
         if (!alive) return;
@@ -95,6 +103,7 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
     }
 
     load();
+
     return () => {
       alive = false;
     };
@@ -120,10 +129,17 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
 
     return items.filter((b) => {
       if (!b.hikeDate) return false;
+
       const d = new Date(b.hikeDate);
       d.setHours(0, 0, 0, 0);
+
       return d >= today;
     }).length;
+  }, [items]);
+
+  // ⭐ GUIDE PROFIT CALCULATION
+  const totalGuideRevenue = useMemo(() => {
+    return items.reduce((sum, b) => sum + Number(b.guideCost || 0), 0);
   }, [items]);
 
   const openDetails = (b: Booking) => {
@@ -141,15 +157,17 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Details dialog */}
+      {/* DETAILS DIALOG */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Booking Details</DialogTitle>
+
             <DialogDescription>
               {selected?.hikeName ? (
                 <>
-                  <b>{selected.hikeName}</b> • {formatDate(selected.hikeDate)}{" "}
+                  <b>{selected.hikeName}</b> •{" "}
+                  {formatDate(selected.hikeDate)}{" "}
                   {selected.hikeTime ? `• ${selected.hikeTime}` : ""}
                 </>
               ) : (
@@ -160,16 +178,59 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
 
           {selected && (
             <div className="space-y-2 text-sm">
-              <div><b>Customer:</b> {selected.customerName || selected.customerEmail || selected.userId || "Unknown"}</div>
-              {selected.customerEmail && <div><b>Email:</b> {selected.customerEmail}</div>}
-              {selected.customerPhone && <div><b>Phone:</b> {selected.customerPhone}</div>}
-              <div><b>People:</b> {selected.numberOfPeople}</div>
-              <div><b>Guide Package:</b> {prettyGuide(selected.guide)}</div>
-              <div><b>Transport:</b> {selected.transport || "none"}</div>
-              {selected.transport && selected.transport !== "none" && (
-                <div><b>Pickup:</b> {selected.pickupLocation || "—"}</div>
+              <div>
+                <b>Customer:</b>{" "}
+                {selected.customerName ||
+                  selected.customerEmail ||
+                  selected.userId ||
+                  "Unknown"}
+              </div>
+
+              {selected.customerEmail && (
+                <div>
+                  <b>Email:</b> {selected.customerEmail}
+                </div>
               )}
-              <div><b>Gear:</b> {Array.isArray(selected.gear) && selected.gear.length ? selected.gear.join(", ") : "—"}</div>
+
+              {selected.customerPhone && (
+                <div>
+                  <b>Phone:</b> {selected.customerPhone}
+                </div>
+              )}
+
+              <div>
+                <b>People:</b> {selected.numberOfPeople}
+              </div>
+
+              <div>
+                <b>Guide Package:</b> {prettyGuide(selected.guide)}
+              </div>
+
+              <div>
+                <b>Guide Earnings:</b>{" "}
+                LKR{" "}
+                {Math.round(selected.guideCost || 0).toLocaleString(
+                  "en-LK"
+                )}
+              </div>
+
+              <div>
+                <b>Transport:</b> {selected.transport || "none"}
+              </div>
+
+              {selected.transport && selected.transport !== "none" && (
+                <div>
+                  <b>Pickup:</b> {selected.pickupLocation || "—"}
+                </div>
+              )}
+
+              <div>
+                <b>Gear:</b>{" "}
+                {Array.isArray(selected.gear) && selected.gear.length
+                  ? selected.gear.join(", ")
+                  : "—"}
+              </div>
+
               <div className="text-xs text-muted-foreground pt-2">
                 Booking ID: {selected._id}
               </div>
@@ -177,19 +238,30 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+            <Button
+              variant="outline"
+              onClick={() => setDetailsOpen(false)}
+            >
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <h1 className="text-3xl font-bold mb-8">Guide Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed Hikes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Confirmed Hikes
+            </CardTitle>
+
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
+
           <CardContent>
             <div className="text-2xl font-bold">{items.length}</div>
           </CardContent>
@@ -197,15 +269,38 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Upcoming
+            </CardTitle>
+
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
+
           <CardContent>
             <div className="text-2xl font-bold">{upcomingCount}</div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Guide Earnings
+            </CardTitle>
+
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-2xl font-bold">
+              LKR{" "}
+              {Math.round(totalGuideRevenue).toLocaleString("en-LK")}
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
 
+      {/* BOOKINGS TABLE */}
       <Card>
         <CardHeader>
           <CardTitle>Bookings (Guide Selected)</CardTitle>
@@ -213,6 +308,7 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
 
         <CardContent>
           <Table>
+
             <TableHeader>
               <TableRow>
                 <TableHead>Customer</TableHead>
@@ -227,34 +323,62 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
             </TableHeader>
 
             <TableBody>
+
               {items.map((b) => (
                 <TableRow key={b._id}>
-                  <TableCell>{b.customerName || b.customerEmail || b.userId || "Unknown"}</TableCell>
-                  <TableCell>{b.customerPhone || "—"}</TableCell>
-                  <TableCell>{b.hikeName}</TableCell>
-                  <TableCell>{formatDate(b.hikeDate)}</TableCell>
-                  <TableCell>{b.hikeTime || "—"}</TableCell>
-                  <TableCell>{b.numberOfPeople}</TableCell>
+
                   <TableCell>
-                    <Badge variant="secondary">{prettyGuide(b.guide)}</Badge>
+                    {b.customerName ||
+                      b.customerEmail ||
+                      b.userId ||
+                      "Unknown"}
                   </TableCell>
+
+                  <TableCell>{b.customerPhone || "—"}</TableCell>
+
+                  <TableCell>{b.hikeName}</TableCell>
+
+                  <TableCell>{formatDate(b.hikeDate)}</TableCell>
+
+                  <TableCell>{b.hikeTime || "—"}</TableCell>
+
+                  <TableCell>{b.numberOfPeople}</TableCell>
+
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {prettyGuide(b.guide)}
+                    </Badge>
+                  </TableCell>
+
                   <TableCell className="text-right">
-                    <Button size="sm" variant="outline" onClick={() => openDetails(b)}>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openDetails(b)}
+                    >
                       <Eye className="mr-2 h-4 w-4" />
                       View
                     </Button>
+
                   </TableCell>
+
                 </TableRow>
               ))}
 
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                  <TableCell
+                    colSpan={8}
+                    className="text-center text-muted-foreground py-10"
+                  >
                     No confirmed bookings with guide selected yet.
                   </TableCell>
                 </TableRow>
               )}
+
             </TableBody>
+
           </Table>
         </CardContent>
       </Card>

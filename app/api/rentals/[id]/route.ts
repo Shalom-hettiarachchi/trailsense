@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongoose";
 import RentalItem from "@/models/RentalItem";
 
+/* ---------------- PATCH (UPDATE) ---------------- */
+
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -18,7 +20,6 @@ export async function PATCH(
 
     const body = await req.json();
 
-    // ✅ force correct types
     const update: any = {
       ...(body.sku !== undefined && { sku: String(body.sku) }),
       ...(body.name !== undefined && { name: String(body.name) }),
@@ -44,9 +45,42 @@ export async function PATCH(
     }
 
     return NextResponse.json({ message: "Updated", item: updated });
+
   } catch (err: any) {
     return NextResponse.json(
       { message: err?.message || "Update failed" },
+      { status: 500 }
+    );
+  }
+}
+
+
+/* ---------------- DELETE ---------------- */
+
+export async function DELETE(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  await connectDB();
+
+  try {
+    const { id } = await ctx.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+    }
+
+    const deleted = await RentalItem.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return NextResponse.json({ message: "Rental not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Rental deleted" });
+
+  } catch (err: any) {
+    return NextResponse.json(
+      { message: err?.message || "Delete failed" },
       { status: 500 }
     );
   }

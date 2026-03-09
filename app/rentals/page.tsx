@@ -45,7 +45,7 @@ export default function RentalsPage() {
 
         if (!res.ok) throw new Error(data?.message || "Failed to load rentals");
 
-        // ✅ Accept multiple possible response shapes
+        // Accept multiple possible response shapes
         const list: any[] =
           (Array.isArray(data?.rentals) && data.rentals) ||
           (Array.isArray(data?.items) && data.items) ||
@@ -53,7 +53,7 @@ export default function RentalsPage() {
           (Array.isArray(data?.data) && data.data) ||
           [];
 
-        // ✅ Missing isActive = treat as active
+        // Missing isActive = treat as active
         const cleaned = list
           .filter((x) => x?.isActive !== false)
           .sort((a, b) => (Number(a?.sortOrder ?? 0) - Number(b?.sortOrder ?? 0)));
@@ -98,7 +98,7 @@ export default function RentalsPage() {
               <li>• All equipment is sanitized and inspected before each rental</li>
               <li>• Multi-day discounts available (10% off for 3+ days)</li>
               <li>• Damage deposit required (refundable upon return)</li>
-              <li>• Free delivery for orders over LKR 3,000</li>
+              <li>• Late returns may incur additional fees</li>
             </ul>
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -146,8 +147,8 @@ export default function TransportPage() {
                 </CardContent>
 
                 <CardFooter>
-                  <Button variant="adventure" className="w-full">
-                    Book This Vehicle
+                  <Button variant="adventure" className="w-full" asChild>
+                    <Link href="/planner">Book This Vehicle</Link>
                   </Button>
                 </CardFooter>
               </Card>

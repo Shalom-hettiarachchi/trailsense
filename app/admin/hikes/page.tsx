@@ -342,7 +342,7 @@ export default function AdminHikesPage() {
 
       {/* Edit/Create dialog */}
       <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{mode === "create" ? "Create Hike" : "Edit Hike"}</DialogTitle>
             <DialogDescription>Fields marked required must be filled.</DialogDescription>

@@ -39,7 +39,7 @@ const transportOptions = [
     title: "Self",
     subtitle: "You arrange your own ride",
     rate: 0,
-    img: "/vehicles/vehicle-car.jpg",
+    img: "/vehicles/vehicle-self.jpg",
   },
   {
     id: "car",
