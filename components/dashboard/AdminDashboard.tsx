@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
+// Added the required import for type safety
+import { MeUser } from "@/app/dashboard/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,32 +58,31 @@ import {
   Line,
 } from "recharts";
 
+// Defined the Props interface
+interface DashboardProps {
+  user: MeUser;
+}
+
 type Booking = {
   _id: string;
-
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
   userId?: string;
-
   hikeName: string;
   hikeId?: string;
-
   hikeDate?: string;
   hikeTime?: string;
   createdAt?: string;
   bookingDate?: string;
-
   numberOfPeople: number;
   status: "pending" | "confirmed" | "cancelled" | string;
-
   guide?: string;
   transport?: string;
   pickupLocation?: string;
-
   totalCost?: number;
-  baseHikeFee?: number
-  rentalFee?: number
+  baseHikeFee?: number;
+  rentalFee?: number;
 };
 
 function toMoney(n: number) {
@@ -112,7 +113,8 @@ function monthLabel(key: string) {
   return dt.toLocaleString(undefined, { month: "short" });
 }
 
-export default function AdminDashboardPage() {
+// Updated the function name and signature to accept user props
+export default function AdminDashboard({ user }: DashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
 
   // ✅ first-load vs refresh (prevents jump to top)
@@ -292,34 +294,34 @@ export default function AdminDashboardPage() {
     }
 
     bookings.forEach((b) => {
-  const d = safeDate(b.createdAt || b.bookingDate || b.hikeDate) || null;
+      const d = safeDate(b.createdAt || b.bookingDate || b.hikeDate) || null;
 
-  // Admin profit = hike fee + rental fee only
-  const cost =
-    Number(b.totalCost || 0)
+      // Admin profit = hike fee + rental fee only
+      const cost =
+        Number(b.totalCost || 0)
 
-  // bookings per day
-  if (d) {
-    const key = ymd(d);
-    if (bookingsByDay.has(key)) {
-      bookingsByDay.set(key, (bookingsByDay.get(key) || 0) + 1);
-    }
-  }
+      // bookings per day
+      if (d) {
+        const key = ymd(d);
+        if (bookingsByDay.has(key)) {
+          bookingsByDay.set(key, (bookingsByDay.get(key) || 0) + 1);
+        }
+      }
 
-  if (!isRevenueBooking(b)) return;
+      if (!isRevenueBooking(b)) return;
 
-  totalRevenue += cost;
+      totalRevenue += cost;
 
-  if (d) {
-    const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+      if (d) {
+        const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
 
-    if (diffDays <= 7) weeklyRevenue += cost;
-    if (diffDays <= 30) monthlyRevenue += cost;
+        if (diffDays <= 7) weeklyRevenue += cost;
+        if (diffDays <= 30) monthlyRevenue += cost;
 
-    const mKey = monthKey(d);
-    revenueByMonth.set(mKey, (revenueByMonth.get(mKey) || 0) + cost);
-  }
-});
+        const mKey = monthKey(d);
+        revenueByMonth.set(mKey, (revenueByMonth.get(mKey) || 0) + cost);
+      }
+    });
 
     // last 6 months chart
     const months: string[] = [];
@@ -345,19 +347,19 @@ export default function AdminDashboardPage() {
     const hikeCount = new Map<string, number>();
     const hikeRevenue = new Map<string, number>();
 
-   bookings.forEach((b) => {
-    hikeCount.set(b.hikeName, (hikeCount.get(b.hikeName) || 0) + 1);
+    bookings.forEach((b) => {
+      hikeCount.set(b.hikeName, (hikeCount.get(b.hikeName) || 0) + 1);
 
-    if (isRevenueBooking(b)) {
-      const profit =
-        Number(b.totalCost || 0)
+      if (isRevenueBooking(b)) {
+        const profit =
+          Number(b.totalCost || 0)
 
-      hikeRevenue.set(
-        b.hikeName,
-        (hikeRevenue.get(b.hikeName) || 0) + profit
-      );
-    }
-  });
+        hikeRevenue.set(
+          b.hikeName,
+          (hikeRevenue.get(b.hikeName) || 0) + profit
+        );
+      }
+    });
 
     const topHikes = Array.from(hikeCount.entries())
       .map(([name, count]) => ({
@@ -374,7 +376,7 @@ export default function AdminDashboardPage() {
     const userLabel = (b: Booking) => b.customerName || b.customerEmail || b.userId || "Unknown";
 
     bookings.forEach((b) => {
-     const id = b.userId || "unknown";
+      const id = b.userId || "unknown";
 
       userCount.set(id, (userCount.get(id) || 0) + 1);
 
@@ -507,8 +509,8 @@ export default function AdminDashboardPage() {
                     selected.status === "confirmed"
                       ? "default"
                       : selected.status === "pending"
-                      ? "secondary"
-                      : "outline"
+                        ? "secondary"
+                        : "outline"
                   }
                 >
                   {selected.status}
@@ -588,8 +590,8 @@ export default function AdminDashboardPage() {
                               b.status === "confirmed"
                                 ? "default"
                                 : b.status === "pending"
-                                ? "secondary"
-                                : "outline"
+                                  ? "secondary"
+                                  : "outline"
                             }
                           >
                             {b.status}
@@ -624,6 +626,9 @@ export default function AdminDashboardPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+          <p className="text-muted-foreground mb-2">
+            Logged in as: {user.fullName} ({user.email})
+          </p>
           <p className="text-muted-foreground mb-6">
             Manage bookings, approvals, and analytics.
           </p>
@@ -813,8 +818,8 @@ export default function AdminDashboardPage() {
                           b.status === "confirmed"
                             ? "default"
                             : b.status === "pending"
-                            ? "secondary"
-                            : "outline"
+                              ? "secondary"
+                              : "outline"
                         }
                       >
                         {b.status}

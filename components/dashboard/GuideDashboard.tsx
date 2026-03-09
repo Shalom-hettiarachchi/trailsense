@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+// 1. Import MeUser to match the type used in DashboardPage
+import { MeUser } from "@/app/dashboard/page";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,12 +28,8 @@ import {
 
 import { Calendar, MapPin, Eye } from "lucide-react";
 
-type AppUser = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: "admin" | "guide" | "user";
-};
+// Using MeUser from your dashboard page to ensure build passes
+type AppUser = MeUser;
 
 type Booking = {
   _id: string;
@@ -56,6 +54,7 @@ type Booking = {
   guideCost?: number; // ⭐ GUIDE PROFIT FIELD
 };
 
+// 2. Updated Props interface to accept the prop from DashboardPage
 interface GuideDashboardProps {
   user: AppUser | null;
 }

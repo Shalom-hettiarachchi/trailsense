@@ -11,7 +11,7 @@ import AdminDashboard from "@/components/dashboard/AdminDashboard";
 import GuideDashboard from "@/components/dashboard/GuideDashboard";
 import UserDashboard from "@/components/dashboard/UserDashboard";
 
-type MeUser = {
+export type MeUser = {
   id: string;
   fullName: string;
   email: string;
