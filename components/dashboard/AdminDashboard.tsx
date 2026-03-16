@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-// Added the required import for type safety
 import { MeUser } from "@/app/dashboard/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +32,7 @@ import {
   TrendingUp,
   Loader2,
   Eye,
+  EyeOff,
   CheckCircle,
   XCircle,
   Trash2,
@@ -44,6 +44,7 @@ import {
   Mountain,
   Backpack,
   RefreshCcw,
+  UserPlus,
 } from "lucide-react";
 
 import {
@@ -58,7 +59,6 @@ import {
   Line,
 } from "recharts";
 
-// Defined the Props interface
 interface DashboardProps {
   user: MeUser;
 }
@@ -81,8 +81,15 @@ type Booking = {
   transport?: string;
   pickupLocation?: string;
   totalCost?: number;
-  baseHikeFee?: number;
-  rentalFee?: number;
+  // ✅ Updated to match your actual database schema
+  hikeFee?: number;
+  gearCost?: number;
+};
+
+type Guide = {
+  _id: string;
+  name: string;
+  email: string;
 };
 
 function toMoney(n: number) {
@@ -113,30 +120,32 @@ function monthLabel(key: string) {
   return dt.toLocaleString(undefined, { month: "short" });
 }
 
-// Updated the function name and signature to accept user props
 export default function AdminDashboard({ user }: DashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  // ✅ first-load vs refresh (prevents jump to top)
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  // Filters
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "confirmed" | "cancelled"
   >("all");
 
-  // Booking details dialog
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selected, setSelected] = useState<Booking | null>(null);
 
-  // User history dialog
   const [userOpen, setUserOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const [guidesOpen, setGuidesOpen] = useState(false);
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const [guideForm, setGuideForm] = useState({ _id: "", name: "", email: "", password: "" });
+  const [guideSaving, setGuideSaving] = useState(false);
+  const [guideError, setGuideError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const mountedRef = useRef(false);
 
@@ -160,6 +169,65 @@ export default function AdminDashboard({ user }: DashboardProps) {
     } finally {
       if (mode === "initial") setInitialLoading(false);
       else setRefreshing(false);
+    }
+  };
+
+  const loadGuides = async () => {
+    try {
+      const res = await fetch("/api/guides", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok) setGuides(data.guides || []);
+    } catch (e) {
+      console.error("Failed to load guides", e);
+    }
+  };
+
+  const saveGuide = async () => {
+    if (!guideForm.name || !guideForm.email) {
+      return setGuideError("Name and Email are required");
+    }
+    
+    setGuideSaving(true);
+    setGuideError("");
+    
+    try {
+      const isEdit = !!guideForm._id;
+      const url = isEdit ? "/api/guides/update" : "/api/guides";
+      const method = isEdit ? "PATCH" : "POST";
+      const body = isEdit 
+        ? { id: guideForm._id, name: guideForm.name, email: guideForm.email, password: guideForm.password } 
+        : { name: guideForm.name, email: guideForm.email, password: guideForm.password };
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to save guide");
+      
+      setGuideForm({ _id: "", name: "", email: "", password: "" });
+      setShowPassword(false);
+      loadGuides();
+    } catch (e: any) {
+      setGuideError(e.message);
+    } finally {
+      setGuideSaving(false);
+    }
+  };
+
+  const deleteGuide = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this guide?")) return;
+    try {
+      const res = await fetch("/api/guides/update", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) loadGuides();
+    } catch (e) {
+      console.error("Failed to delete guide", e);
     }
   };
 
@@ -226,7 +294,6 @@ export default function AdminDashboard({ user }: DashboardProps) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || `Request failed (${res.status})`);
 
-      // refresh without unmount -> no scroll jump
       await fetchDashboardData("refresh");
     } catch (e: any) {
       setError(e?.message || "Failed to update booking");
@@ -286,7 +353,6 @@ export default function AdminDashboard({ user }: DashboardProps) {
     const revenueByMonth = new Map<string, number>();
     const bookingsByDay = new Map<string, number>();
 
-    // init last 7 days
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
@@ -296,11 +362,9 @@ export default function AdminDashboard({ user }: DashboardProps) {
     bookings.forEach((b) => {
       const d = safeDate(b.createdAt || b.bookingDate || b.hikeDate) || null;
 
-      // Admin profit = hike fee + rental fee only
-      const cost =
-        Number(b.totalCost || 0)
+      // ✅ Updated to use hikeFee and gearCost
+      const cost = Number(b.hikeFee || 0) + Number(b.gearCost || 0);
 
-      // bookings per day
       if (d) {
         const key = ymd(d);
         if (bookingsByDay.has(key)) {
@@ -323,7 +387,6 @@ export default function AdminDashboard({ user }: DashboardProps) {
       }
     });
 
-    // last 6 months chart
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -343,7 +406,6 @@ export default function AdminDashboard({ user }: DashboardProps) {
       };
     });
 
-    // top hikes
     const hikeCount = new Map<string, number>();
     const hikeRevenue = new Map<string, number>();
 
@@ -351,8 +413,8 @@ export default function AdminDashboard({ user }: DashboardProps) {
       hikeCount.set(b.hikeName, (hikeCount.get(b.hikeName) || 0) + 1);
 
       if (isRevenueBooking(b)) {
-        const profit =
-          Number(b.totalCost || 0)
+        // ✅ Updated to use hikeFee and gearCost
+        const profit = Number(b.hikeFee || 0) + Number(b.gearCost || 0);
 
         hikeRevenue.set(
           b.hikeName,
@@ -370,7 +432,6 @@ export default function AdminDashboard({ user }: DashboardProps) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // top users
     const userCount = new Map<string, number>();
     const userRevenue = new Map<string, number>();
     const userLabel = (b: Booking) => b.customerName || b.customerEmail || b.userId || "Unknown";
@@ -381,8 +442,8 @@ export default function AdminDashboard({ user }: DashboardProps) {
       userCount.set(id, (userCount.get(id) || 0) + 1);
 
       if (isRevenueBooking(b)) {
-        const profit =
-          Number(b.totalCost || 0)
+        // ✅ Updated to use hikeFee and gearCost
+        const profit = Number(b.hikeFee || 0) + Number(b.gearCost || 0);
 
         userRevenue.set(
           id,
@@ -433,7 +494,8 @@ export default function AdminDashboard({ user }: DashboardProps) {
 
     const revenue = list
       .filter(isRevenueBooking)
-      .reduce((s, b) => s + Number(b.totalCost || 0), 0);
+      // ✅ Updated to use hikeFee and gearCost
+      .reduce((s, b) => s + (Number(b.hikeFee || 0) + Number(b.gearCost || 0)), 0);
 
     const label = list[0]?.customerName || list[0]?.customerEmail || list[0]?.userId || selectedUserId;
 
@@ -532,7 +594,7 @@ export default function AdminDashboard({ user }: DashboardProps) {
               )}
 
               <div className="flex items-center justify-between pt-2 border-t">
-                <span className="text-muted-foreground">Total</span>
+                <span className="text-muted-foreground">Total Paid (All Inclusive)</span>
                 <span className="font-semibold">{toMoney(Number(selected.totalCost || 0))}</span>
               </div>
 
@@ -622,6 +684,122 @@ export default function AdminDashboard({ user }: DashboardProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Manage Guides Dialog */}
+      <Dialog open={guidesOpen} onOpenChange={setGuidesOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Manage Guides</DialogTitle>
+            <DialogDescription>Add, edit, or remove guides from your platform.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            
+            {/* Guide Form */}
+            <div className="space-y-4">
+              <h3 className="font-semibold border-b pb-2">
+                {guideForm._id ? "Edit Guide" : "Add New Guide"}
+              </h3>
+              {/* Form wrapped to prevent aggressive browser autofill */}
+              <form 
+                autoComplete="off" 
+                className="space-y-4" 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  saveGuide();
+                }}
+              >
+                <Input 
+                  placeholder="Full Name" 
+                  value={guideForm.name} 
+                  onChange={e => setGuideForm({...guideForm, name: e.target.value})} 
+                  autoComplete="off"
+                  name="guide-name-no-autofill"
+                />
+                <Input 
+                  type="email"
+                  placeholder="Email Address" 
+                  value={guideForm.email} 
+                  onChange={e => setGuideForm({...guideForm, email: e.target.value})} 
+                  autoComplete="off"
+                  name="guide-email-no-autofill"
+                />
+                
+                <div className="relative">
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder={guideForm._id ? "New Password (leave blank to keep)" : "Password"} 
+                    value={guideForm.password} 
+                    onChange={e => setGuideForm({...guideForm, password: e.target.value})} 
+                    autoComplete="new-password"
+                    name="guide-password-no-autofill"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                {guideError && <p className="text-sm text-red-500">{guideError}</p>}
+                
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={guideSaving}>
+                    {guideSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    {guideForm._id ? "Update Guide" : "Save Guide"}
+                  </Button>
+                  {guideForm._id && (
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => setGuideForm({ _id: "", name: "", email: "", password: "" })}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Guide List */}
+            <div className="space-y-4">
+              <h3 className="font-semibold border-b pb-2">Existing Guides</h3>
+              <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2">
+                {guides.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No guides found.</p>
+                ) : (
+                  guides.map((g) => (
+                    <div key={g._id} className="flex items-center justify-between border p-3 rounded-md bg-accent/20">
+                      <div>
+                        <p className="font-medium text-sm">{g.name}</p>
+                        <p className="text-xs text-muted-foreground">{g.email}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setGuideForm({ _id: g._id, name: g.name, email: g.email, password: "" })}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-500 hover:text-red-600" 
+                          onClick={() => deleteGuide(g._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -634,7 +812,7 @@ export default function AdminDashboard({ user }: DashboardProps) {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" asChild>
             <Link href="/admin/hikes">
               <Mountain className="mr-2 h-4 w-4" />
@@ -647,6 +825,17 @@ export default function AdminDashboard({ user }: DashboardProps) {
               <Backpack className="mr-2 h-4 w-4" />
               Manage Rentals
             </Link>
+          </Button>
+
+          <Button 
+            variant="outline" 
+            onClick={() => { 
+              setGuidesOpen(true); 
+              loadGuides(); 
+            }}
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            Manage Guides
           </Button>
 
           <Button
@@ -740,7 +929,7 @@ export default function AdminDashboard({ user }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Filters + Table (where charts used to be) */}
+      {/* Filters + Table */}
       <div className="flex flex-col md:flex-row gap-3 md:items-center mb-4">
         <Input
           placeholder="Search by hike, user, email, phone, status, guide..."
