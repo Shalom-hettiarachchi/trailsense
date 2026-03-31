@@ -6,6 +6,7 @@ import { motion, useAnimation, useMotionValue, useTransform } from "framer-motio
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
