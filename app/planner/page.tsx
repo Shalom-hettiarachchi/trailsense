@@ -584,7 +584,7 @@ function PlannerContent() {
             <div className="grid grid-cols-1 gap-4">
               {[
                 { id: "none", title: "Self-Guided", price: "Free", desc: "Navigate the trail yourself. Recommended only for experienced hikers." },
-                { id: "basic", title: "Local Guide", price: "LKR 3,000", desc: "A knowledgeable local to ensure you stay on the trail." },
+                { id: "basic", title: "Basic Guide", price: "LKR 3,000", desc: "A knowledgeable local to ensure you stay on the trail." },
                 { id: "expert", title: "Expert Mountaineer", price: "LKR 6,000", desc: "Certified wilderness first-responder with extensive flora/fauna knowledge." },
               ].map((guide) => (
                 <div 
