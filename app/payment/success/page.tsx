@@ -142,7 +142,7 @@ function SuccessContent() {
   }, [bookingId, isSuccess]);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden mt-14">
       <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">

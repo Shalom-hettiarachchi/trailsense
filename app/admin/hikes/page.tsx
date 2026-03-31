@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,21 +31,46 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
   Loader2,
   Plus,
   Pencil,
   Trash2,
   Eye,
-  ToggleLeft,
-  ToggleRight,
+  Mountain,
+  Search,
+  MapPin,
+  Clock,
+  Route,
+  Activity,
+  ChevronLeft,
 } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type HikeDTO = {
   _id: string;
   slug: string;
   name: string;
   location?: string;
-  difficulty: "Easy" | "Moderate" | "Hard" | "Expert" | string;
+  difficulty: string;
   duration?: string;
   distance?: string;
   bestSeason?: string;
@@ -54,6 +87,10 @@ type HikeDTO = {
   isActive?: boolean;
   sortOrder?: number;
 };
+
+function toMoney(n: number) {
+  return `LKR ${Math.round(n).toLocaleString("en-LK")}`;
+}
 
 const emptyForm = (): Partial<HikeDTO> => ({
   _id: "",
@@ -82,28 +119,25 @@ export default function AdminHikesPage() {
   const [items, setItems] = useState<HikeDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState("");
-
   const [q, setQ] = useState("");
 
-  // dialogs
+  // Dialogs
   const [openEdit, setOpenEdit] = useState(false);
   const [openView, setOpenView] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [selected, setSelected] = useState<HikeDTO | null>(null);
   const [form, setForm] = useState<Partial<HikeDTO>>(emptyForm());
 
   async function fetchAll() {
     setLoading(true);
-    setError("");
     try {
       const res = await fetch("/api/hikes", { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Failed to load hikes");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Failed to load");
       setItems(Array.isArray(data?.hikes) ? data.hikes : []);
     } catch (e: any) {
-      setItems([]);
-      setError(e?.message || "Failed to load hikes");
+      toast.error(e.message);
     } finally {
       setLoading(false);
     }
@@ -116,120 +150,57 @@ export default function AdminHikesPage() {
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return items;
-    return items.filter((h) => {
-      const hay = [h.slug, h.name, h.location, h.difficulty]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(query);
-    });
+    return items.filter((h) => 
+      [h.slug, h.name, h.location, h.difficulty].some(v => v?.toLowerCase().includes(query))
+    );
   }, [items, q]);
 
   function openCreate() {
-    setError("");
     setMode("create");
-    setSelected(null);
     setForm(emptyForm());
     setOpenEdit(true);
   }
 
   function openEditDialog(h: HikeDTO) {
-    setError("");
     setMode("edit");
-    setSelected(h);
     setForm({
       ...h,
-      _id: h._id, // ✅ keep id
       safetyTips: Array.isArray(h.safetyTips) ? h.safetyTips : [],
       highlights: Array.isArray(h.highlights) ? h.highlights : [],
     });
     setOpenEdit(true);
   }
 
-  function openViewDialog(h: HikeDTO) {
-    setSelected(h);
-    setOpenView(true);
-  }
-
   async function save() {
-    setError("");
-
-    const payload: any = {
+    const payload = {
       ...form,
-      slug: String(form.slug || "").trim(),
-      name: String(form.name || "").trim(),
-      location: String(form.location || "").trim(),
-      imageUrl: String(form.imageUrl || "").trim(),
-      mapEmbedUrl: String(form.mapEmbedUrl || "").trim(),
-      description: String(form.description || ""),
-      fullDescription: String(form.fullDescription || ""),
-      difficulty: String(form.difficulty || "Moderate"),
-      duration: String(form.duration || ""),
-      distance: String(form.distance || ""),
-      bestSeason: String(form.bestSeason || ""),
       baseFee: Number(form.baseFee || 0),
-      dropLat: Number(form.dropLat || 0),
-      dropLng: Number(form.dropLng || 0),
-      sortOrder: Number(form.sortOrder || 0),
-      permitRequired: Boolean(form.permitRequired),
-      isActive: Boolean(form.isActive),
-      safetyTips:
-        typeof form.safetyTips === "string"
-          ? String(form.safetyTips)
-              .split("\n")
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : Array.isArray(form.safetyTips)
-          ? form.safetyTips
-          : [],
-      highlights:
-        typeof form.highlights === "string"
-          ? String(form.highlights)
-              .split("\n")
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : Array.isArray(form.highlights)
-          ? form.highlights
-          : [],
+      safetyTips: typeof form.safetyTips === "string" ? (form.safetyTips as string).split("\n").filter(Boolean) : form.safetyTips,
+      highlights: typeof form.highlights === "string" ? (form.highlights as string).split("\n").filter(Boolean) : form.highlights,
     };
 
-    if (!payload.slug) return setError("Slug is required");
-    if (!payload.name) return setError("Name is required");
+    if (!payload.slug || !payload.name) return toast.error("Slug and Name are required");
 
-    setBusyId(mode === "edit" ? String(form._id || "busy") : "busy");
+    setBusyId("saving");
     try {
-      if (mode === "create") {
-        const res = await fetch("/api/hikes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.message || "Create failed");
-      } else {
-        const id = String(form?._id || selected?._id || "").trim();
-        if (!id) throw new Error("Missing hike id. Close and try again.");
-
-        const res = await fetch(`/api/hikes/${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.message || "Update failed");
-      }
-
-      await fetchAll();
+      const url = mode === "create" ? "/api/hikes" : `/api/hikes/${form._id}`;
+      const res = await fetch(url, {
+        method: mode === "create" ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      toast.success(mode === "create" ? "Hike created" : "Hike updated");
+      fetchAll();
       setOpenEdit(false);
     } catch (e: any) {
-      setError(e?.message || "Save failed");
+      toast.error(e.message);
     } finally {
       setBusyId(null);
     }
   }
 
   async function toggleActive(h: HikeDTO) {
-    setError("");
     setBusyId(h._id);
     try {
       const res = await fetch(`/api/hikes/${h._id}`, {
@@ -237,32 +208,27 @@ export default function AdminHikesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !h.isActive }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Toggle failed");
-
-      setItems((prev) =>
-        prev.map((x) => (x._id === h._id ? { ...x, isActive: !h.isActive } : x))
-      );
-    } catch (e: any) {
-      setError(e?.message || "Toggle failed");
+      if (!res.ok) throw new Error();
+      setItems(prev => prev.map(x => x._id === h._id ? { ...x, isActive: !h.isActive } : x));
+      toast.success(h.isActive ? "Hike disabled" : "Hike activated");
+    } catch {
+      toast.error("Failed to toggle status");
     } finally {
       setBusyId(null);
     }
   }
 
-  async function remove(h: HikeDTO) {
-    if (!confirm(`Delete hike "${h.name}"? This cannot be undone.`)) return;
-
-    setError("");
-    setBusyId(h._id);
+  async function confirmDelete() {
+    if (!selected) return;
+    setBusyId(selected._id);
     try {
-      const res = await fetch(`/api/hikes/${h._id}`, { method: "DELETE" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Delete failed");
-
-      setItems((prev) => prev.filter((x) => x._id !== h._id));
-    } catch (e: any) {
-      setError(e?.message || "Delete failed");
+      const res = await fetch(`/api/hikes/${selected._id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setItems(prev => prev.filter(x => x._id !== selected._id));
+      toast.success("Hike deleted permanently");
+      setOpenDelete(false);
+    } catch {
+      toast.error("Delete failed");
     } finally {
       setBusyId(null);
     }
@@ -270,418 +236,274 @@ export default function AdminHikesPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-10 text-muted-foreground">
-        Loading hikes…
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+        <p>Syncing trail data...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* View dialog */}
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 max-w-7xl animate-in fade-in duration-500">
+      
+      {/* Header Section */}
+      <div className="bg-card border border-border/50 shadow-sm rounded-3xl p-6 md:p-8 mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-primary font-medium mb-1">
+            <Mountain className="h-5 w-5" />
+            <span className="text-sm uppercase tracking-wider">Inventory Management</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Expedition Catalog</h1>
+          <p className="text-muted-foreground text-sm">Create and maintain the trail roster for TrailSense explorers.</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="rounded-full" asChild>
+            <Link href="/dashboard"><ChevronLeft className="mr-2 h-4 w-4" /> Back to Desk</Link>
+          </Button>
+          <Button className="rounded-full shadow-lg shadow-primary/20" onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" /> New Trail
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Filter by trail name, slug, difficulty or region..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="pl-11 h-12 bg-card rounded-2xl border-border/50 shadow-sm md:max-w-xl"
+        />
+      </div>
+
+      {/* Main Table */}
+      <Card className="border-border/50 shadow-sm overflow-hidden rounded-3xl">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-muted/30 h-14">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-6 w-[100px]">Preview</TableHead>
+                <TableHead>Trail Info</TableHead>
+                <TableHead>Difficulty</TableHead>
+                <TableHead>Base Fee</TableHead>
+                <TableHead>Visibility</TableHead>
+                <TableHead className="text-right pr-6">Management</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((h) => (
+                <TableRow key={h._id} className="group h-20">
+                  <TableCell className="pl-6">
+                    <div className="h-12 w-16 rounded-xl bg-muted overflow-hidden border border-border/50 shadow-inner">
+                      {h.imageUrl ? (
+                        <img src={h.imageUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                      ) : <Mountain className="h-full w-full p-3 opacity-20" />}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-foreground">{h.name}</span>
+                      <span className="text-xs text-muted-foreground font-mono">{h.slug}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className={cn(
+                      "shadow-none",
+                      h.difficulty === "Easy" && "bg-emerald-500/10 text-emerald-600",
+                      h.difficulty === "Hard" && "bg-orange-500/10 text-orange-600",
+                      h.difficulty === "Expert" && "bg-red-500/10 text-red-600"
+                    )}>
+                      {h.difficulty}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-semibold text-primary">
+                    {toMoney(h.baseFee || 0)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={h.isActive} 
+                        onCheckedChange={() => toggleActive(h)}
+                        disabled={busyId === h._id}
+                      />
+                      <span className={cn("text-xs font-medium", h.isActive ? "text-emerald-600" : "text-muted-foreground")}>
+                        {h.isActive ? "Public" : "Draft"}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <div className="flex justify-end gap-2">
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { setSelected(h); setOpenView(true); }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEditDialog(h)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => { setSelected(h); setOpenDelete(true); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {filtered.length === 0 && (
+            <div className="py-20 text-center flex flex-col items-center justify-center text-muted-foreground">
+              <Mountain className="h-12 w-12 mb-4 opacity-10" />
+              <p>No trails found matching your search.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modals Section */}
+
+      {/* Delete Alert */}
+      <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retire this trail?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong className="text-foreground">{selected?.name}</strong>? This will remove all associated metadata from the catalog.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View Dialog */}
       <Dialog open={openView} onOpenChange={setOpenView}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{selected?.name || "Hike"}</DialogTitle>
-            <DialogDescription>{selected?.location || "—"}</DialogDescription>
-          </DialogHeader>
-
-          {selected && (
-            <div className="space-y-4">
-              {selected.imageUrl ? (
-                <div className="rounded-lg border overflow-hidden bg-muted">
-                  <img
-                    src={selected.imageUrl}
-                    alt={selected.name}
-                    className="w-full max-h-[260px] object-cover"
-                  />
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{selected.slug}</Badge>
-                <Badge variant="secondary">{selected.difficulty}</Badge>
-                <Badge variant="secondary">{selected.duration || "—"}</Badge>
-                <Badge variant="secondary">
-                  Rs. {Math.round(selected.baseFee || 0).toLocaleString("en-LK")}
-                </Badge>
-                <Badge variant={selected.isActive ? "default" : "outline"}>
-                  {selected.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-
-              <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {selected.fullDescription || selected.description || "—"}
-              </div>
-
-              {!!selected.safetyTips?.length && (
-                <div>
-                  <p className="font-semibold mb-1">Safety tips</p>
-                  <ul className="list-disc ml-5 text-sm text-muted-foreground">
-                    {selected.safetyTips.map((x, i) => (
-                      <li key={i}>{x}</li>
-                    ))}
+        <DialogContent className="max-w-3xl overflow-hidden p-0 rounded-3xl">
+          <div className="h-48 w-full bg-muted relative">
+            {selected?.imageUrl ? (
+              <img src={selected.imageUrl} className="w-full h-full object-cover" alt="" />
+            ) : null}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-6 left-6 text-white">
+              <h2 className="text-2xl font-bold">{selected?.name}</h2>
+              <p className="text-white/80 text-sm flex items-center gap-1"><MapPin className="h-3 w-3" /> {selected?.location}</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 text-sm"><Activity className="h-4 w-4 text-primary" /> <strong>Difficulty:</strong> {selected?.difficulty}</div>
+              <div className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4 text-primary" /> <strong>Duration:</strong> {selected?.duration}</div>
+              <div className="flex items-center gap-2 text-sm"><Route className="h-4 w-4 text-primary" /> <strong>Distance:</strong> {selected?.distance}</div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Overview</h4>
+              <p className="text-sm leading-relaxed text-foreground/80">{selected?.fullDescription || selected?.description}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {!!selected?.highlights?.length && (
+                <div className="bg-muted/30 p-4 rounded-2xl border">
+                  <h4 className="font-semibold text-sm mb-2">Highlights</h4>
+                  <ul className="text-xs space-y-1.5 text-muted-foreground">
+                    {selected.highlights.map((h, i) => <li key={i} className="flex gap-2">• {h}</li>)}
                   </ul>
                 </div>
               )}
-
-              {!!selected.highlights?.length && (
-                <div>
-                  <p className="font-semibold mb-1">Highlights</p>
-                  <ul className="list-disc ml-5 text-sm text-muted-foreground">
-                    {selected.highlights.map((x, i) => (
-                      <li key={i}>{x}</li>
-                    ))}
+              {!!selected?.safetyTips?.length && (
+                <div className="bg-orange-500/5 p-4 rounded-2xl border border-orange-500/10">
+                  <h4 className="font-semibold text-sm mb-2 text-orange-700">Safety Tips</h4>
+                  <ul className="text-xs space-y-1.5 text-orange-800/70">
+                    {selected.safetyTips.map((t, i) => <li key={i} className="flex gap-2">⚠️ {t}</li>)}
                   </ul>
                 </div>
               )}
             </div>
-          )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Edit/Create dialog */}
+      {/* Create/Edit Dialog */}
       <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-8">
           <DialogHeader>
-            <DialogTitle>{mode === "create" ? "Create Hike" : "Edit Hike"}</DialogTitle>
-            <DialogDescription>Fields marked required must be filled.</DialogDescription>
+            <DialogTitle className="text-2xl">{mode === "create" ? "Add New Trail" : "Modify Trail Data"}</DialogTitle>
+            <DialogDescription>Sync the latest trail intelligence to the platform.</DialogDescription>
           </DialogHeader>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Slug (required)</Label>
-              <Input
-                value={form.slug || ""}
-                onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Example: yahangala</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Trail Name</Label>
+              <Input placeholder="e.g. Pidurangala Rock" value={form.name || ""} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} />
             </div>
-
-            <div>
-              <Label>Name (required)</Label>
-              <Input
-                value={form.name || ""}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Slug (URL)</Label>
+              <Input placeholder="pidurangala-rock" value={form.slug || ""} onChange={(e) => setForm(p => ({ ...p, slug: e.target.value }))} />
             </div>
-
-            <div>
-              <Label>Location</Label>
-              <Input
-                value={form.location || ""}
-                onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-              />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Difficulty</Label>
+              <Select value={form.difficulty} onValueChange={(v) => setForm(p => ({ ...p, difficulty: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Easy">Easy</SelectItem>
+                  <SelectItem value="Moderate">Moderate</SelectItem>
+                  <SelectItem value="Hard">Hard</SelectItem>
+                  <SelectItem value="Expert">Expert</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            <div>
-              <Label>Difficulty</Label>
-              <Input
-                value={String(form.difficulty || "")}
-                onChange={(e) => setForm((p) => ({ ...p, difficulty: e.target.value }))}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Easy / Moderate / Hard / Expert
-              </p>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Location</Label>
+              <Input value={form.location || ""} onChange={(e) => setForm(p => ({ ...p, location: e.target.value }))} />
             </div>
-
-            <div>
-              <Label>Duration</Label>
-              <Input
-                value={form.duration || ""}
-                onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))}
-              />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Base Fee (LKR)</Label>
+              <Input type="number" value={form.baseFee || ""} onChange={(e) => setForm(p => ({ ...p, baseFee: Number(e.target.value) }))} />
             </div>
-
-            <div>
-              <Label>Distance</Label>
-              <Input
-                value={form.distance || ""}
-                onChange={(e) => setForm((p) => ({ ...p, distance: e.target.value }))}
-              />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Distance (km)</Label>
+              <Input value={form.distance || ""} onChange={(e) => setForm(p => ({ ...p, distance: e.target.value }))} />
             </div>
-
-            <div>
-              <Label>Base Fee (LKR)</Label>
-              <Input
-                type="number"
-                value={String(form.baseFee ?? 0)}
-                onChange={(e) => setForm((p) => ({ ...p, baseFee: Number(e.target.value) }))}
-              />
+            <div className="md:col-span-3 space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
+              <textarea className="w-full min-h-[100px] rounded-xl border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none" value={form.fullDescription || ""} onChange={(e) => setForm(p => ({ ...p, fullDescription: e.target.value }))} />
             </div>
-
-            <div>
-              <Label>Sort Order</Label>
-              <Input
-                type="number"
-                value={String(form.sortOrder ?? 0)}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, sortOrder: Number(e.target.value) }))
-                }
-              />
-            </div>
-
-            <div>
-              <Label>Image URL</Label>
-              <Input
-                placeholder="/hikes/yahangala.jpg"
-                value={form.imageUrl || ""}
-                onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <Label>Map Embed URL</Label>
-              <Input
-                value={form.mapEmbedUrl || ""}
-                onChange={(e) => setForm((p) => ({ ...p, mapEmbedUrl: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <Label>Drop Lat</Label>
-              <Input
-                type="number"
-                value={String(form.dropLat ?? 0)}
-                onChange={(e) => setForm((p) => ({ ...p, dropLat: Number(e.target.value) }))}
-              />
-            </div>
-
-            <div>
-              <Label>Drop Lng</Label>
-              <Input
-                type="number"
-                value={String(form.dropLng ?? 0)}
-                onChange={(e) => setForm((p) => ({ ...p, dropLng: Number(e.target.value) }))}
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label>Short Description</Label>
-              <Input
-                value={form.description || ""}
-                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label>Full Description</Label>
-              <textarea
-                className="w-full min-h-[120px] rounded-md border bg-background p-2 text-sm"
-                value={form.fullDescription || ""}
-                onChange={(e) => setForm((p) => ({ ...p, fullDescription: e.target.value }))}
-              />
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Safety Tips (one per line)</Label>
-                <textarea
-                  className="w-full min-h-[120px] rounded-md border bg-background p-2 text-sm"
-                  value={
-                    Array.isArray(form.safetyTips)
-                      ? form.safetyTips.join("\n")
-                      : (form.safetyTips as any) || ""
-                  }
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      safetyTips: e.target.value
-                        .split("\n")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    }))
-                  }
+            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Highlights (one per line)</Label>
+                <textarea className="w-full h-32 rounded-xl border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={Array.isArray(form.highlights) ? form.highlights.join("\n") : ""} 
+                  onChange={(e) => setForm(p => ({ ...p, highlights: e.target.value.split("\n") }))} 
                 />
               </div>
-
-              <div>
-                <Label>Highlights (one per line)</Label>
-                <textarea
-                  className="w-full min-h-[120px] rounded-md border bg-background p-2 text-sm"
-                  value={
-                    Array.isArray(form.highlights)
-                      ? form.highlights.join("\n")
-                      : (form.highlights as any) || ""
-                  }
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      highlights: e.target.value
-                        .split("\n")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    }))
-                  }
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Safety Tips (one per line)</Label>
+                <textarea className="w-full h-32 rounded-xl border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none font-medium text-orange-700" 
+                  value={Array.isArray(form.safetyTips) ? form.safetyTips.join("\n") : ""} 
+                  onChange={(e) => setForm(p => ({ ...p, safetyTips: e.target.value.split("\n") }))} 
                 />
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={Boolean(form.permitRequired)}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, permitRequired: e.target.checked }))
-                }
-              />
-              <span className="text-sm">Permit required</span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={Boolean(form.isActive)}
-                onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-              />
-              <span className="text-sm">Active</span>
+            <div className="flex items-center gap-6 md:col-span-3 bg-muted/30 p-4 rounded-2xl border border-dashed">
+              <div className="flex items-center gap-2">
+                <Switch checked={form.permitRequired} onCheckedChange={(v) => setForm(p => ({ ...p, permitRequired: v }))} />
+                <Label className="text-sm">Permit Required</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={form.isActive} onCheckedChange={(v) => setForm(p => ({ ...p, isActive: v }))} />
+                <Label className="text-sm">Public Visibility</Label>
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenEdit(false)}>
-              Cancel
-            </Button>
-            <Button onClick={save} disabled={!!busyId}>
-              {busyId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save
+          <DialogFooter className="border-t pt-6 gap-2">
+            <Button variant="ghost" className="rounded-full" onClick={() => setOpenEdit(false)}>Discard</Button>
+            <Button className="rounded-full px-8" onClick={save} disabled={busyId === "saving"}>
+              {busyId === "saving" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Sync to Catalog
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold">Manage Hikes</h1>
-          <p className="text-muted-foreground">Create, edit, activate/deactivate hikes.</p>
-        </div>
-
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Hike
-        </Button>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-3 md:items-center">
-        <Input
-          placeholder="Search hikes (name, slug, location, difficulty)…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="md:max-w-md"
-        />
-      </div>
-
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Hikes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Preview</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Difficulty</TableHead>
-                <TableHead>Fee</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {filtered.map((h) => {
-                const busy = busyId === h._id;
-                return (
-                  <TableRow key={h._id}>
-                    <TableCell>
-                      <div className="h-12 w-20 rounded-md bg-muted overflow-hidden border">
-                        {h.imageUrl ? (
-                          <img
-                            src={h.imageUrl}
-                            alt={h.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="font-medium">{h.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{h.slug}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{h.difficulty}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      Rs. {Math.round(h.baseFee || 0).toLocaleString("en-LK")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={h.isActive ? "default" : "outline"}>
-                        {h.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => openViewDialog(h)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </Button>
-
-                        <Button size="sm" variant="outline" onClick={() => openEditDialog(h)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => toggleActive(h)}
-                          disabled={busy}
-                        >
-                          {busy ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : h.isActive ? (
-                            <ToggleRight className="mr-2 h-4 w-4" />
-                          ) : (
-                            <ToggleLeft className="mr-2 h-4 w-4" />
-                          )}
-                          {h.isActive ? "Disable" : "Enable"}
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => remove(h)}
-                          disabled={busy}
-                        >
-                          {busy ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="mr-2 h-4 w-4" />
-                          )}
-                          Delete
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                    No hikes found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }

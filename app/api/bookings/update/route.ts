@@ -12,13 +12,18 @@ export async function PATCH(req: Request) {
     const {
       id,
 
-      // existing fields
+      // Booking details
       hikeDate,
       numberOfPeople,
       status,
-      guideId,
+      
+      // ✅ NEW fields added to support Admin edits and Guide assignments
+      guide,
+      assignedGuideId,
+      transport,
+      pickupLocation,
 
-      // ✅ NEW payment fields (from success page / payhere notify)
+      // Payment fields (from success page / payhere notify)
       paymentStatus,
       paymentProvider,
       payhereOrderId,
@@ -31,10 +36,24 @@ export async function PATCH(req: Request) {
 
     const update: any = {};
 
-    // ✅ Assign / unassign guide
-    if (guideId !== undefined) {
-      const g = String(guideId).trim();
-      update.guideId = g; // allow empty string
+    // ✅ Assign / unassign guide (from the Confirm Modal)
+    if (assignedGuideId !== undefined) {
+      update.assignedGuideId = String(assignedGuideId).trim() || null;
+    }
+
+    // ✅ Edit requested guide type (e.g., "basic", "expert", "none")
+    if (guide !== undefined) {
+      update.guide = String(guide).trim();
+    }
+
+    // ✅ Edit transport option
+    if (transport !== undefined) {
+      update.transport = String(transport).trim();
+    }
+
+    // ✅ Edit pickup location
+    if (pickupLocation !== undefined) {
+      update.pickupLocation = String(pickupLocation).trim();
     }
 
     // ✅ Edit hike date
@@ -68,7 +87,6 @@ export async function PATCH(req: Request) {
     }
 
     // ✅ Payment status update
-    // allow: paid | unpaid | failed (or whatever you use)
     if (paymentStatus !== undefined) {
       const ps = String(paymentStatus).trim().toLowerCase();
       if (!["paid", "unpaid", "failed"].includes(ps)) {

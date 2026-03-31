@@ -24,14 +24,15 @@ const BookingSchema = new Schema(
     customerPhone: { type: String, default: "" },
 
     // Rentals
-    // gearQty example: { Tent: 2, boots: 1 }
     gearQty: {
       type: Map,
       of: Number,
       default: {},
     },
 
-    guide: { type: String, default: "none" },
+    // Guide Info
+    guide: { type: String, default: "none" }, // What the user requested
+    assignedGuideId: { type: String, default: null }, // NEW: The actual guide assigned by Admin
 
     // Transport
     transport: { type: String, default: "none" },
@@ -46,8 +47,8 @@ const BookingSchema = new Schema(
     totalCost: { type: Number, default: 0 },
 
     // Payment (PayHere)
-    paymentProvider: { type: String, default: "none" }, // "payhere"
-    paymentStatus: { type: String, default: "unpaid" }, // unpaid | paid | failed
+    paymentProvider: { type: String, default: "none" }, 
+    paymentStatus: { type: String, default: "unpaid" }, 
     payhereOrderId: { type: String, default: "" },
     payherePaymentId: { type: String, default: "" },
   },

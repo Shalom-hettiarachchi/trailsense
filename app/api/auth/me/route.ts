@@ -22,12 +22,16 @@ async function getUserIdFromCookieToken() {
 export async function GET() {
   try {
     const userId = await getUserIdFromCookieToken();
-    if (!userId) return NextResponse.json({ user: null }, { status: 401 });
+    
+    // ✅ CHANGED: Return 200 OK with user: null to prevent console errors
+    if (!userId) return NextResponse.json({ user: null }, { status: 200 });
 
     await connectDB();
 
     const user = await User.findById(userId).select("-passwordHash");
-    if (!user) return NextResponse.json({ user: null }, { status: 401 });
+    
+    // ✅ CHANGED: Return 200 OK here as well
+    if (!user) return NextResponse.json({ user: null }, { status: 200 });
 
     return NextResponse.json({
       user: {
@@ -36,15 +40,17 @@ export async function GET() {
         fullName: user.fullName,
         role: user.role,
       },
-    });
+    }, { status: 200 });
   } catch {
-    return NextResponse.json({ user: null }, { status: 401 });
+    // ✅ CHANGED: And here
+    return NextResponse.json({ user: null }, { status: 200 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
     const userId = await getUserIdFromCookieToken();
+    // Keep 401 here because modifying data without logging in IS a hard error
     if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     await connectDB();

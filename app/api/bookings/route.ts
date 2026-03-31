@@ -48,7 +48,9 @@ export async function GET(req: Request) {
           customerPhone: b.customerPhone,
 
           gearQty: Object.fromEntries((b.gearQty || new Map()).entries()),
+          
           guide: b.guide,
+          assignedGuideId: b.assignedGuideId, // ✅ ADDED HERE
 
           transport: b.transport,
           pickupLocation: b.pickupLocation,
@@ -114,14 +116,15 @@ export async function GET(req: Request) {
         customerPhone: b.customerPhone,
 
         gearQty: Object.fromEntries((b.gearQty || new Map()).entries()),
+        
         guide: b.guide,
+        assignedGuideId: b.assignedGuideId, // ✅ ADDED HERE
 
         transport: b.transport,
         pickupLocation: b.pickupLocation,
         distanceKm: b.distanceKm,
 
         // ⭐ IMPORTANT (FOR ADMIN + GUIDE DASHBOARDS)
-
         hikeFee: b.hikeFee,
         gearCost: b.gearCost,
         guideCost: b.guideCost,
@@ -293,6 +296,9 @@ export async function POST(req: Request) {
       gearQty: gearQty && typeof gearQty === "object" ? gearQty : {},
 
       guide: guide || "none",
+      
+      // Explicitly set null on creation just to be safe
+      assignedGuideId: null,
 
       transport: t,
       pickupLocation: pickupLocation || "",
