@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-import { Home, Mountain, Tent, LayoutDashboard, ArrowLeft } from "lucide-react";
+// Removed "Home" from the imports
+import { Mountain, Tent, LayoutDashboard, ArrowLeft } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -40,13 +41,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 Rentals
               </Link>
             </Button>
-
-            <Button asChild variant="outline" size="sm">
-              <Link href="/">
-                <Home className="mr-2 h-4 w-4" />
-                Main Site
-              </Link>
-            </Button>
+            
+            {/* "Main Site" button has been removed from here */}
           </div>
         </div>
       </div>

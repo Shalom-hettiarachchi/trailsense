@@ -6,9 +6,6 @@ import Link from "next/link";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +55,7 @@ import {
   Package,
   Boxes,
   ChevronLeft,
-  ArrowUpDown,
+  ImagePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -94,10 +91,10 @@ function toMoney(n: number) {
 export default function AdminRentalsPage() {
   const [items, setItems] = useState<RentalDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false); // New: for Cloudinary status
   const [busyId, setBusyId] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
-  // Dialog States
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
@@ -127,6 +124,38 @@ export default function AdminRentalsPage() {
       [r.sku, r.name, r.category].some((v) => v?.toLowerCase().includes(query))
     );
   }, [items, q]);
+
+  // Handle Image Upload to Cloudinary
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Optional: Size check (e.g., 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error("File is too large. Max 5MB allowed.");
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      setForm((prev) => ({ ...prev, imageUrl: data.url }));
+      toast.success("Image processed and ready");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function openCreate() {
     setMode("create");
@@ -226,15 +255,14 @@ export default function AdminRentalsPage() {
         </div>
 
         <div className="flex flex-wrap gap-4">
-            
-            <div className="flex gap-3">
-                <Button variant="outline" className="rounded-full" asChild>
-                    <Link href="/dashboard"><ChevronLeft className="mr-2 h-4 w-4" /> Desk</Link>
-                </Button>
-                <Button className="rounded-full shadow-lg shadow-primary/20" onClick={openCreate}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Gear
-                </Button>
-            </div>
+          <div className="flex gap-3">
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link href="/dashboard"><ChevronLeft className="mr-2 h-4 w-4" /> Desk</Link>
+            </Button>
+            <Button className="rounded-full shadow-lg shadow-primary/20" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" /> Add Gear
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -348,7 +376,7 @@ export default function AdminRentalsPage() {
 
       {/* Edit/Create Dialog */}
       <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-        <DialogContent className="max-w-3xl rounded-3xl p-8">
+        <DialogContent className="max-w-3xl rounded-3xl p-8 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">{mode === "create" ? "Onboard Equipment" : "Modify Asset Details"}</DialogTitle>
             <DialogDescription>Update the master catalog with the latest gear specs.</DialogDescription>
@@ -375,6 +403,53 @@ export default function AdminRentalsPage() {
               <Label className="text-xs font-bold uppercase text-muted-foreground">Item Name</Label>
               <Input placeholder="Expedition 4-Person Tent" value={form.name || ""} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} />
             </div>
+            
+            {/* --- Image Upload Section --- */}
+            <div className="md:col-span-2 space-y-3">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Equipment Image</Label>
+              
+              {form.imageUrl ? (
+                <div className="relative group rounded-2xl overflow-hidden border border-border bg-muted aspect-video md:aspect-[21/9]">
+                  <img 
+                    src={form.imageUrl} 
+                    alt="Equipment Preview" 
+                    className="w-full h-full object-cover" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      className="rounded-full"
+                      onClick={() => setForm(p => ({ ...p, imageUrl: "" }))}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Replace Image
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <label className={cn(
+                  "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer transition-all",
+                  uploading ? "bg-muted/50 border-primary/20" : "bg-muted/10 border-border hover:bg-muted/30 hover:border-primary/40"
+                )}>
+                  <div className="flex flex-col items-center justify-center py-5">
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-10 w-10 text-primary animate-spin mb-2" />
+                        <p className="text-sm font-medium">Syncing with Cloudinary...</p>
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
+                        <p className="text-sm font-medium">Click to upload gear image</p>
+                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WEBP (Max 5MB)</p>
+                      </>
+                    )}
+                  </div>
+                  <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" disabled={uploading} />
+                </label>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Unit Price (LKR)</Label>
               <Input type="number" value={form.unitPrice || ""} onChange={(e) => setForm(p => ({ ...p, unitPrice: Number(e.target.value) }))} />
@@ -382,10 +457,6 @@ export default function AdminRentalsPage() {
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Stock Level</Label>
               <Input type="number" value={form.stock || ""} onChange={(e) => setForm(p => ({ ...p, stock: Number(e.target.value) }))} />
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Thumbnail URL</Label>
-              <Input placeholder="/gear/tent-blue.jpg" value={form.imageUrl || ""} onChange={(e) => setForm(p => ({ ...p, imageUrl: e.target.value }))} />
             </div>
             <div className="md:col-span-2 space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
@@ -402,7 +473,7 @@ export default function AdminRentalsPage() {
 
           <DialogFooter className="border-t pt-6 gap-2">
             <Button variant="ghost" className="rounded-full" onClick={() => setOpenEdit(false)}>Discard</Button>
-            <Button className="rounded-full px-8" onClick={save} disabled={busyId === "saving"}>
+            <Button className="rounded-full px-8" onClick={save} disabled={busyId === "saving" || uploading}>
               {busyId === "saving" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>
