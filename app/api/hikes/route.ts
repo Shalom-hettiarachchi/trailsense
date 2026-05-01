@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Hike from "@/models/Hike";
 
+// 1. GET ALL HIKES
 export async function GET(req: Request) {
   await connectDB();
-
   try {
     const { searchParams } = new URL(req.url);
     const activeOnly = searchParams.get("activeOnly") === "1";
@@ -16,26 +16,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       hikes: hikes.map((h: any) => ({
+        ...h._doc, // Spreads all fields from the document
         _id: h._id.toString(),
-        slug: h.slug,
-        name: h.name,
-        location: h.location,
-        difficulty: h.difficulty,
-        duration: h.duration,
-        distance: h.distance,
-        bestSeason: h.bestSeason,
-        description: h.description,
-        fullDescription: h.fullDescription,
-        imageUrl: h.imageUrl,
-        permitRequired: h.permitRequired,
-        safetyTips: h.safetyTips,
-        highlights: h.highlights,
-        mapEmbedUrl: h.mapEmbedUrl,
-        baseFee: h.baseFee,
-        dropLat: h.dropLat,
-        dropLng: h.dropLng,
-        isActive: h.isActive,
-        sortOrder: h.sortOrder,
       })),
     });
   } catch (e: any) {
@@ -46,29 +28,30 @@ export async function GET(req: Request) {
   }
 }
 
+// 2. CREATE NEW HIKE
 export async function POST(req: Request) {
   await connectDB();
-
   try {
     const body = await req.json();
 
-    if (!body?.slug?.trim()) {
-      return NextResponse.json({ message: "Slug is required" }, { status: 400 });
-    }
-    if (!body?.name?.trim()) {
-      return NextResponse.json({ message: "Name is required" }, { status: 400 });
+    // Check for duplicate slugs before attempting creation
+    const existing = await Hike.findOne({ slug: body.slug });
+    if (existing) {
+      return NextResponse.json({ message: "A hike with this slug already exists" }, { status: 400 });
     }
 
     const created = await Hike.create(body);
 
     return NextResponse.json(
-      { message: "Hike created", id: created._id.toString() },
+      { message: "Hike created successfully", id: created._id.toString() },
       { status: 201 }
     );
   } catch (e: any) {
+    // If Mongoose validation fails, this returns the specific missing field names
+    console.error("Mongoose Error:", e);
     return NextResponse.json(
-      { message: e?.message || "Failed to create hike" },
-      { status: 500 }
+      { message: e?.message || "Validation failed: Check all required fields" },
+      { status: 400 } // Changed to 400 as this is usually a user-input validation issue
     );
   }
 }

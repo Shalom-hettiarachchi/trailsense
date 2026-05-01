@@ -1,15 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +54,7 @@ import {
   Route,
   Activity,
   ChevronLeft,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -69,23 +63,23 @@ type HikeDTO = {
   _id: string;
   slug: string;
   name: string;
-  location?: string;
+  location: string;
   difficulty: string;
-  duration?: string;
-  distance?: string;
-  bestSeason?: string;
-  description?: string;
-  fullDescription?: string;
-  imageUrl?: string;
-  permitRequired?: boolean;
-  safetyTips?: string[];
-  highlights?: string[];
+  duration: string;
+  distance: string;
+  bestSeason: string;
+  description: string;
+  fullDescription: string;
+  imageUrl: string;
+  permitRequired: boolean;
+  safetyTips: string[];
+  highlights: string[];
   mapEmbedUrl?: string;
-  baseFee?: number;
-  dropLat?: number;
-  dropLng?: number;
-  isActive?: boolean;
-  sortOrder?: number;
+  baseFee: number;
+  dropLat: number;
+  dropLng: number;
+  isActive: boolean;
+  sortOrder: number;
 };
 
 function toMoney(n: number) {
@@ -100,7 +94,7 @@ const emptyForm = (): Partial<HikeDTO> => ({
   difficulty: "Moderate",
   duration: "",
   distance: "",
-  bestSeason: "",
+  bestSeason: "Year-round",
   description: "",
   fullDescription: "",
   imageUrl: "",
@@ -109,8 +103,8 @@ const emptyForm = (): Partial<HikeDTO> => ({
   highlights: [],
   mapEmbedUrl: "",
   baseFee: 0,
-  dropLat: 0,
-  dropLng: 0,
+  dropLat: 6.9271,
+  dropLng: 79.8612,
   isActive: true,
   sortOrder: 0,
 });
@@ -119,9 +113,10 @@ export default function AdminHikesPage() {
   const [items, setItems] = useState<HikeDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [q, setQ] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Dialogs
   const [openEdit, setOpenEdit] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -147,11 +142,36 @@ export default function AdminHikesPage() {
     fetchAll();
   }, []);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "hikes");
+
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.url) {
+        setForm((prev) => ({ ...prev, imageUrl: data.url }));
+        toast.success("Banner uploaded");
+      }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return items;
-    return items.filter((h) => 
-      [h.slug, h.name, h.location, h.difficulty].some(v => v?.toLowerCase().includes(query))
+    return items.filter((h) =>
+      [h.slug, h.name, h.location, h.difficulty].some((v) =>
+        v?.toLowerCase().includes(query)
+      )
     );
   }, [items, q]);
 
@@ -172,14 +192,33 @@ export default function AdminHikesPage() {
   }
 
   async function save() {
-    const payload = {
-      ...form,
-      baseFee: Number(form.baseFee || 0),
-      safetyTips: typeof form.safetyTips === "string" ? (form.safetyTips as string).split("\n").filter(Boolean) : form.safetyTips,
-      highlights: typeof form.highlights === "string" ? (form.highlights as string).split("\n").filter(Boolean) : form.highlights,
-    };
+    // 1. Create payload and FIX the _id issue for new hikes
+    const payload: any = { ...form };
+    
+    // THE FIX: If creating a new hike, delete the empty _id string 
+    // to prevent the BSONError shown in image_3c3419.png
+    if (mode === "create" || !payload._id || payload._id === "") {
+      delete payload._id;
+    }
 
-    if (!payload.slug || !payload.name) return toast.error("Slug and Name are required");
+    // 2. Formatting and Fallbacks
+    payload.description = payload.description || payload.fullDescription?.substring(0, 160) || "";
+    payload.baseFee = Number(payload.baseFee || 0);
+    payload.dropLat = Number(payload.dropLat || 6.9271); // Default to Colombo if empty
+    payload.dropLng = Number(payload.dropLng || 79.8612);
+    payload.sortOrder = Number(payload.sortOrder || 0);
+
+    // Ensure tips and highlights remain arrays
+    payload.safetyTips = Array.isArray(payload.safetyTips) ? payload.safetyTips : [];
+    payload.highlights = Array.isArray(payload.highlights) ? payload.highlights : [];
+
+    // 3. Validation
+    const required = ["slug", "name", "location", "duration", "distance", "bestSeason", "fullDescription", "imageUrl"];
+    for (const field of required) {
+      if (!payload[field]) {
+        return toast.error(`${field.charAt(0).toUpperCase() + field.slice(1)} is required`);
+      }
+    }
 
     setBusyId("saving");
     try {
@@ -189,7 +228,9 @@ export default function AdminHikesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Save failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Save failed");
+
       toast.success(mode === "create" ? "Hike created" : "Hike updated");
       fetchAll();
       setOpenEdit(false);
@@ -209,7 +250,9 @@ export default function AdminHikesPage() {
         body: JSON.stringify({ isActive: !h.isActive }),
       });
       if (!res.ok) throw new Error();
-      setItems(prev => prev.map(x => x._id === h._id ? { ...x, isActive: !h.isActive } : x));
+      setItems((prev) =>
+        prev.map((x) => (x._id === h._id ? { ...x, isActive: !h.isActive } : x))
+      );
       toast.success(h.isActive ? "Hike disabled" : "Hike activated");
     } catch {
       toast.error("Failed to toggle status");
@@ -224,7 +267,7 @@ export default function AdminHikesPage() {
     try {
       const res = await fetch(`/api/hikes/${selected._id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      setItems(prev => prev.filter(x => x._id !== selected._id));
+      setItems((prev) => prev.filter((x) => x._id !== selected._id));
       toast.success("Hike deleted permanently");
       setOpenDelete(false);
     } catch {
@@ -358,8 +401,6 @@ export default function AdminHikesPage() {
         </CardContent>
       </Card>
 
-      {/* Modals Section */}
-
       {/* Delete Alert */}
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent>
@@ -399,7 +440,7 @@ export default function AdminHikesPage() {
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Overview</h4>
-              <p className="text-sm leading-relaxed text-foreground/80">{selected?.fullDescription || selected?.description}</p>
+              <p className="text-sm leading-relaxed text-foreground/80">{selected?.fullDescription}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {!!selected?.highlights?.length && (
@@ -432,13 +473,43 @@ export default function AdminHikesPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6">
+            
+            {/* Cloudinary Image Upload Section */}
+            <div className="md:col-span-3">
+              <Label className="text-xs font-bold uppercase text-muted-foreground mb-2 block">Trail Banner</Label>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "relative h-48 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden",
+                  form.imageUrl ? "border-primary/20" : "hover:border-primary/50 bg-muted/30"
+                )}
+              >
+                {uploading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                ) : form.imageUrl ? (
+                  <>
+                    <img src={form.imageUrl} className="w-full h-full object-cover" alt="Hike Preview" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <p className="text-white text-sm font-medium">Click to change banner</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Click to upload hike banner</p>
+                  </div>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Trail Name</Label>
-              <Input placeholder="e.g. Pidurangala Rock" value={form.name || ""} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} />
+              <Input placeholder="e.g. Ella Rock" value={form.name || ""} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Slug (URL)</Label>
-              <Input placeholder="pidurangala-rock" value={form.slug || ""} onChange={(e) => setForm(p => ({ ...p, slug: e.target.value }))} />
+              <Input placeholder="ella-rock" value={form.slug || ""} onChange={(e) => setForm(p => ({ ...p, slug: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Difficulty</Label>
@@ -452,38 +523,67 @@ export default function AdminHikesPage() {
                 </SelectContent>
               </Select>
             </div>
+            
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Location</Label>
-              <Input value={form.location || ""} onChange={(e) => setForm(p => ({ ...p, location: e.target.value }))} />
+              <Input placeholder="Ella, Sri Lanka" value={form.location || ""} onChange={(e) => setForm(p => ({ ...p, location: e.target.value }))} />
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Duration</Label>
+              <Input placeholder="e.g. 4 Hours" value={form.duration || ""} onChange={(e) => setForm(p => ({ ...p, duration: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Best Season</Label>
+              <Input placeholder="Dec - March" value={form.bestSeason || ""} onChange={(e) => setForm(p => ({ ...p, bestSeason: e.target.value }))} />
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Base Fee (LKR)</Label>
               <Input type="number" value={form.baseFee || ""} onChange={(e) => setForm(p => ({ ...p, baseFee: Number(e.target.value) }))} />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Distance (km)</Label>
-              <Input value={form.distance || ""} onChange={(e) => setForm(p => ({ ...p, distance: e.target.value }))} />
+              <Input placeholder="e.g. 8km" value={form.distance || ""} onChange={(e) => setForm(p => ({ ...p, distance: e.target.value }))} />
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Sort Order</Label>
+              <Input type="number" value={form.sortOrder || 0} onChange={(e) => setForm(p => ({ ...p, sortOrder: Number(e.target.value) }))} />
+            </div>
+
+            {/* Coordinates Section */}
+            <div className="md:col-span-3 grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-2xl border">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Drop-off Latitude</Label>
+                <Input type="number" step="any" value={form.dropLat || ""} onChange={(e) => setForm(p => ({ ...p, dropLat: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Drop-off Longitude</Label>
+                <Input type="number" step="any" value={form.dropLng || ""} onChange={(e) => setForm(p => ({ ...p, dropLng: Number(e.target.value) }))} />
+              </div>
+            </div>
+
             <div className="md:col-span-3 space-y-2">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
-              <textarea className="w-full min-h-[100px] rounded-xl border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none" value={form.fullDescription || ""} onChange={(e) => setForm(p => ({ ...p, fullDescription: e.target.value }))} />
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Full Description</Label>
+              <textarea className="w-full min-h-[120px] rounded-xl border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" value={form.fullDescription || ""} onChange={(e) => setForm(p => ({ ...p, fullDescription: e.target.value }))} />
             </div>
+
             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-muted-foreground">Highlights (one per line)</Label>
-                <textarea className="w-full h-32 rounded-xl border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none" 
+                <textarea className="w-full h-32 rounded-xl border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" 
                   value={Array.isArray(form.highlights) ? form.highlights.join("\n") : ""} 
-                  onChange={(e) => setForm(p => ({ ...p, highlights: e.target.value.split("\n") }))} 
+                  onChange={(e) => setForm(p => ({ ...p, highlights: e.target.value.split("\n").filter(Boolean) }))} 
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-muted-foreground">Safety Tips (one per line)</Label>
-                <textarea className="w-full h-32 rounded-xl border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none font-medium text-orange-700" 
+                <textarea className="w-full h-32 rounded-xl border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20 text-orange-700 font-medium" 
                   value={Array.isArray(form.safetyTips) ? form.safetyTips.join("\n") : ""} 
-                  onChange={(e) => setForm(p => ({ ...p, safetyTips: e.target.value.split("\n") }))} 
+                  onChange={(e) => setForm(p => ({ ...p, safetyTips: e.target.value.split("\n").filter(Boolean) }))} 
                 />
               </div>
             </div>
+
             <div className="flex items-center gap-6 md:col-span-3 bg-muted/30 p-4 rounded-2xl border border-dashed">
               <div className="flex items-center gap-2">
                 <Switch checked={form.permitRequired} onCheckedChange={(v) => setForm(p => ({ ...p, permitRequired: v }))} />
@@ -498,8 +598,8 @@ export default function AdminHikesPage() {
 
           <DialogFooter className="border-t pt-6 gap-2">
             <Button variant="ghost" className="rounded-full" onClick={() => setOpenEdit(false)}>Discard</Button>
-            <Button className="rounded-full px-8" onClick={save} disabled={busyId === "saving"}>
-              {busyId === "saving" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Sync to Catalog
+            <Button className="rounded-full px-8" onClick={save} disabled={busyId === "saving" || uploading}>
+              {(busyId === "saving" || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Sync to Catalog
             </Button>
           </DialogFooter>
         </DialogContent>
