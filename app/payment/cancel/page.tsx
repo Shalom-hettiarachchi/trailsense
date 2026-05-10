@@ -6,7 +6,6 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// 2. Move your main UI logic into a separate internal component
 function PaymentCancelContent() {
   const sp = useSearchParams();
   const bookingId = sp.get("bookingId");
@@ -24,7 +23,6 @@ function PaymentCancelContent() {
   );
 }
 
-// 3. The default export now wraps the content in Suspense
 export default function PaymentCancel() {
   return (
     <div className="min-h-screen flex flex-col">

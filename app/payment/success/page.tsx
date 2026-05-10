@@ -20,7 +20,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-// --- Keep your helper functions outside ---
 function formatLKR(n: number) {
   return `Rs. ${Math.round(n).toLocaleString("en-LK")}`;
 }
@@ -52,7 +51,6 @@ type BookingDTO = {
   payherePaymentId?: string;
 };
 
-// 1. Move all the state, refs, and effects into this component
 function SuccessContent() {
   const sp = useSearchParams();
 
@@ -203,7 +201,6 @@ function SuccessContent() {
   );
 }
 
-// 2. The final export that provides the Suspense Boundary
 export default function PaymentSuccessPage() {
   return (
     <div className="min-h-screen flex flex-col">

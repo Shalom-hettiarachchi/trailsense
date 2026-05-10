@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
-// New Shadcn Imports
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +54,7 @@ export default function RentalsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Backend Fetching (Untouched)
+  // Backend Fetching
   useEffect(() => {
     let alive = true;
 
@@ -94,7 +93,6 @@ export default function RentalsPage() {
     return () => { alive = false; };
   }, []);
 
-  // Dynamically extract categories from the loaded items
   const categories = useMemo(() => {
     const cats = items.map(item => item.category).filter(Boolean) as string[];
     return Array.from(new Set(cats)).sort();

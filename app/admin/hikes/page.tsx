@@ -192,27 +192,21 @@ export default function AdminHikesPage() {
   }
 
   async function save() {
-    // 1. Create payload and FIX the _id issue for new hikes
     const payload: any = { ...form };
     
-    // THE FIX: If creating a new hike, delete the empty _id string 
-    // to prevent the BSONError shown in image_3c3419.png
     if (mode === "create" || !payload._id || payload._id === "") {
       delete payload._id;
     }
 
-    // 2. Formatting and Fallbacks
     payload.description = payload.description || payload.fullDescription?.substring(0, 160) || "";
     payload.baseFee = Number(payload.baseFee || 0);
     payload.dropLat = Number(payload.dropLat || 6.9271); // Default to Colombo if empty
     payload.dropLng = Number(payload.dropLng || 79.8612);
     payload.sortOrder = Number(payload.sortOrder || 0);
 
-    // Ensure tips and highlights remain arrays
     payload.safetyTips = Array.isArray(payload.safetyTips) ? payload.safetyTips : [];
     payload.highlights = Array.isArray(payload.highlights) ? payload.highlights : [];
 
-    // 3. Validation
     const required = ["slug", "name", "location", "duration", "distance", "bestSeason", "fullDescription", "imageUrl"];
     for (const field of required) {
       if (!payload[field]) {

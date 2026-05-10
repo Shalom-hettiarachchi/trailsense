@@ -4,7 +4,6 @@ import { Resend } from "resend"; // 1. Import Resend
 import { connectDB } from "@/lib/mongoose";
 import Booking from "@/models/Booking";
 
-// Initialize Resend with your API Key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 function md5(input: string) {
@@ -40,7 +39,6 @@ export async function POST(req: Request) {
     }
 
     if (status_code === "2") {
-      // 2. Update Booking and capture the result to get user info
       const updatedBooking = await Booking.findByIdAndUpdate(
         order_id,
         {
@@ -55,10 +53,9 @@ export async function POST(req: Request) {
         { new: true }
       );
 
-      // 3. If update successful, send the confirmation email
       if (updatedBooking) {
         await resend.emails.send({
-          from: "TrailSense <onboarding@resend.dev>", // Replace with your verified domain later
+          from: "TrailSense <onboarding@resend.dev>",
           to: updatedBooking.customerEmail,
           subject: `Hike Confirmed: ${updatedBooking.hikeName}`,
           html: `

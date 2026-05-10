@@ -24,9 +24,7 @@ function formatLKR(n: number) {
   return `LKR ${Math.round(n).toLocaleString("en-LK")}`;
 }
 
-// ----------------------------------------------------------------------
-// Slide to Pay Component
-// ----------------------------------------------------------------------
+
 interface SlideToPayProps {
   onSuccess: () => void;
   isLoading: boolean;
@@ -41,7 +39,6 @@ function SlideToPay({ onSuccess, isLoading, amount }: SlideToPayProps) {
   const x = useMotionValue(0);
   const controls = useAnimation();
 
-  // Calculate the max drag distance based on container width
   useEffect(() => {
     const updateWidth = () => {
       if (containerRef.current) {
@@ -59,7 +56,6 @@ function SlideToPay({ onSuccess, isLoading, amount }: SlideToPayProps) {
 
   const playSound = () => {
     try {
-      // Clean, professional success sound from Google's public UI library
       const audio = new Audio("https://actions.google.com/sounds/v1/ui/software_interface_start.ogg");
       audio.volume = 0.5;
       audio.play().catch(() => {});

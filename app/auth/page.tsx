@@ -31,14 +31,12 @@ export default function AuthPage() {
 
   const [loading, setLoading] = useState(false);
 
-  // global + field errors
   const [error, setError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [nameError, setNameError] = useState("");
 
   const emailIsValid = useMemo(() => {
-    // simple email check (good enough for UI)
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   }, [email]);
 
@@ -82,7 +80,7 @@ export default function AuthPage() {
   const mapServerErrorToFields = (message: string) => {
     const msg = (message || "").toLowerCase();
 
-    // tweak these keywords to match your backend messages
+  
     if (
       msg.includes("password") ||
       msg.includes("incorrect") ||
@@ -107,9 +105,7 @@ export default function AuthPage() {
     setError(message);
   };
 
-  // ============================
   // SUBMIT
-  // ============================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -137,7 +133,6 @@ export default function AuthPage() {
         throw new Error(msg);
       }
 
-      // ✅ ROLE-BASED REDIRECT
       if (isLogin) {
         const role = data?.user?.role;
 
@@ -147,7 +142,6 @@ export default function AuthPage() {
           router.push("/");
         }
       } else {
-        // after signup → normal users go to overview
         router.push("/");
       }
 

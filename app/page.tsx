@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import HikeCard from "@/components/HikeCard";
 
 import { hikes } from "@/data/hikes";
-import { Target, Map, Shield, Bot, Sparkles } from "lucide-react"; // Added Bot and Sparkles
+import { Target, Map, Shield, Bot, Sparkles } from "lucide-react"; 
 
 import heroImage from "@/assets/hero-mountains.png";
 

@@ -28,7 +28,6 @@ export async function PATCH(req: Request) {
       updateData.passwordHash = hashed;
     }
 
-    // Update the user document where _id matches AND role is 'guide' (for security)
     const updatedGuide = await User.findOneAndUpdate(
       { _id: id, role: "guide" }, 
       updateData, 
@@ -57,7 +56,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: "Guide ID required" }, { status: 400 });
     }
 
-    // Delete the user document where _id matches AND role is 'guide'
     const deletedGuide = await User.findOneAndDelete({ _id: id, role: "guide" });
 
     if (!deletedGuide) {

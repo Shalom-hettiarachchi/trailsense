@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   await connectDB();
 
   const { searchParams } = new URL(req.url);
-  const role = searchParams.get("role"); // e.g. "guide"
+  const role = searchParams.get("role"); 
 
   const query: any = {};
   if (role) query.role = role;

@@ -12,18 +12,15 @@ export async function PATCH(req: Request) {
     const {
       id,
 
-      // Booking details
       hikeDate,
       numberOfPeople,
       status,
       
-      // ✅ NEW fields added to support Admin edits and Guide assignments
       guide,
       assignedGuideId,
       transport,
       pickupLocation,
 
-      // Payment fields (from success page / payhere notify)
       paymentStatus,
       paymentProvider,
       payhereOrderId,
@@ -36,27 +33,27 @@ export async function PATCH(req: Request) {
 
     const update: any = {};
 
-    // ✅ Assign / unassign guide (from the Confirm Modal)
+    // Assign / unassign guide
     if (assignedGuideId !== undefined) {
       update.assignedGuideId = String(assignedGuideId).trim() || null;
     }
 
-    // ✅ Edit requested guide type (e.g., "basic", "expert", "none")
+    // Edit requested guide type
     if (guide !== undefined) {
       update.guide = String(guide).trim();
     }
 
-    // ✅ Edit transport option
+    // Edit transport option
     if (transport !== undefined) {
       update.transport = String(transport).trim();
     }
 
-    // ✅ Edit pickup location
+    // Edit pickup location
     if (pickupLocation !== undefined) {
       update.pickupLocation = String(pickupLocation).trim();
     }
 
-    // ✅ Edit hike date
+    // Edit hike date
     if (hikeDate !== undefined) {
       const d = String(hikeDate).trim();
       if (!d) {
@@ -65,7 +62,7 @@ export async function PATCH(req: Request) {
       update.hikeDate = d;
     }
 
-    // ✅ Edit numberOfPeople
+    // Edit numberOfPeople
     if (numberOfPeople !== undefined) {
       const n = Number(numberOfPeople);
       if (!n || n < 1 || n > 20) {
@@ -77,7 +74,7 @@ export async function PATCH(req: Request) {
       update.numberOfPeople = n;
     }
 
-    // ✅ Status update
+    // Status update
     if (status !== undefined) {
       const s = String(status);
       if (!["pending", "confirmed", "cancelled"].includes(s)) {
@@ -86,7 +83,7 @@ export async function PATCH(req: Request) {
       update.status = s;
     }
 
-    // ✅ Payment status update
+    // Payment status update
     if (paymentStatus !== undefined) {
       const ps = String(paymentStatus).trim().toLowerCase();
       if (!["paid", "unpaid", "failed"].includes(ps)) {

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// Removed "Home" from the imports
 import { Mountain, Tent, LayoutDashboard, ArrowLeft } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

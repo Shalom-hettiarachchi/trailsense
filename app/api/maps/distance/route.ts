@@ -5,8 +5,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { origin, destination } = body || {};
 
-    // origin can be an address string, or "lat,lng"
-    // destination should be { lat, lng }
     if (!origin || !destination?.lat || !destination?.lng) {
       return NextResponse.json(
         { message: "origin and destination(lat,lng) are required" },

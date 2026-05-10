@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 
-// TanStack React Table
 import {
   ColumnDef,
   flexRender,
@@ -15,7 +14,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-// User type from your auth/dashboard system
 import { MeUser } from "@/app/dashboard/page";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -116,7 +114,6 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
 
         const list: Booking[] = Array.isArray(data?.bookings) ? data.bookings : [];
 
-        // STRICT FILTER: Only confirmed bookings specifically assigned to THIS guide
         const assignedToMe = list.filter(
           (b) => b.assignedGuideId === user.id && b.status === "confirmed"
         );
@@ -162,7 +159,6 @@ export default function GuideDashboard({ user }: GuideDashboardProps) {
   }, [bookings]);
 
   const totalGuideRevenue = useMemo(() => {
-    // If guideCost isn't populated yet by the backend, fallback to a base calculation
     return bookings.reduce((sum, b) => {
       const fallbackCost = b.guide === "expert" ? 6000 : 3000;
       return sum + Number(b.guideCost || fallbackCost);

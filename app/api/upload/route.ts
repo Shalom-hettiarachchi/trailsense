@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
-// Ensure these names match EXACTLY what is in your .env.local file
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUD_KEY || process.env.CLOUDINARY_API_KEY,
@@ -12,7 +11,6 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    // Allow the frontend to specify a folder (defaults to 'general')
     const folder = (formData.get("folder") as string) || "general";
 
     if (!file) {
@@ -26,7 +24,7 @@ export async function POST(req: Request) {
       const stream = cloudinary.uploader.upload_stream(
         { 
           folder: folder,
-          resource_type: "auto" // Supports images, PDFs, etc.
+          resource_type: "auto" 
         },
         (error, result) => {
           if (error) {

@@ -162,7 +162,6 @@ function PlannerContent() {
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [distanceError, setDistanceError] = useState("");
 
-  // Sync custom time picker with formData
   useEffect(() => {
     setFormData((p) => ({ ...p, hikeTime: `${selectedHour}:${selectedMinute} ${selectedAmPm}` }));
   }, [selectedHour, selectedMinute, selectedAmPm]);

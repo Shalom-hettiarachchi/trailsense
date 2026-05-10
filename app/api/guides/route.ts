@@ -7,10 +7,8 @@ export async function GET() {
   try {
     await connectDB();
     
-    // Fetch only users who have the "guide" role
     const users = await User.find({ role: "guide" }).sort({ createdAt: -1 });
     
-    // Map the fields so the frontend table sees what it expects
     const guides = users.map(u => ({
       _id: u._id,
       name: u.fullName || "Unknown", 
@@ -28,30 +26,25 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await connectDB();
-    // Extract the new experienceLevel field from the request body
     const { name, email, password, experienceLevel } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ message: "Name, email, and password are required" }, { status: 400 });
     }
 
-    // Check if user already exists to prevent duplicate email crashes
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json({ message: "Email is already in use" }, { status: 400 });
     }
 
-    // Hash the password securely
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create the user as a guide, mapping all fields
     const newGuide = await User.create({ 
       fullName: name, 
       email, 
       password: hashedPassword,     
       passwordHash: hashedPassword, 
       role: "guide",
-      // Save the experience level (defaulting to basic if none provided)
       experienceLevel: experienceLevel || "basic"
     });
 

@@ -8,7 +8,7 @@ export async function POST() {
 
   try {
     const docs = hikes.map((h) => ({
-      slug: h.id, // IMPORTANT: your data uses "id"
+      slug: h.id, 
       name: h.name,
       location: h.location,
       difficulty: h.difficulty,

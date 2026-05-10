@@ -38,14 +38,12 @@ export default function Contact() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call for presentation purposes
     await new Promise((resolve) => setTimeout(resolve, 1500));
     
     console.log("Form submitted");
     setIsSubmitting(false);
     setIsSuccess(true);
 
-    // Reset success message after 5 seconds
     setTimeout(() => setIsSuccess(false), 5000);
   };
 

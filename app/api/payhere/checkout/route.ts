@@ -9,7 +9,7 @@ function md5(input: string) {
 
 function formatAmount(n: number) {
   const v = Number(n || 0);
-  return v.toFixed(2); // PayHere expects "1234.00"
+  return v.toFixed(2); 
 }
 
 export async function POST(req: Request) {
@@ -25,7 +25,6 @@ export async function POST(req: Request) {
     const merchantId = process.env.PAYHERE_MERCHANT_ID;
     const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET;
 
-    // MUST be a public https URL if you want notify_url to work (use ngrok in dev)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     if (!merchantId || !merchantSecret) {
@@ -48,7 +47,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // CRITICAL: PayHere order_id must be your Mongo booking _id
     const orderId = booking._id.toString();
 
     const currency = "LKR";
@@ -69,7 +67,7 @@ export async function POST(req: Request) {
       return_url: `${appUrl}/payment/success?bookingId=${encodeURIComponent(orderId)}`,
       cancel_url: `${appUrl}/payment/cancel?bookingId=${encodeURIComponent(orderId)}`,
 
-      // IMPORTANT: notify_url must be reachable by PayHere (NOT localhost)
+
       notify_url: `${appUrl}/api/payhere/notify`,
 
       order_id: orderId,

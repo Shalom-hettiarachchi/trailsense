@@ -26,7 +26,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // amount must be "0.00" format in hash creation (PayHere expects 2 decimals)
     const amountStr = Number(amount).toFixed(2);
 
     // hash = strtoupper(md5(merchant_id + order_id + amount + currency + strtoupper(md5(merchant_secret))))

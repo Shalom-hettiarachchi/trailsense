@@ -28,12 +28,10 @@ export async function POST(req: Request) {
 
     const hikeDetails = HIKE_KNOWLEDGE[hikeName] || "A highland trek in Sri Lanka.";
     
-    // Create a string of all available hikes so the AI knows what to recommend
     const allHikesCatalog = Object.entries(HIKE_KNOWLEDGE)
       .map(([name, desc]) => `- ${name}: ${desc}`)
       .join("\n");
 
-    // Updated Prompt to include conditional recommendations
     const prompt = `
       You are a Sri Lankan Trekking Safety Expert. 
       Analyze if a hiker is ready for the "${hikeName}" hike.

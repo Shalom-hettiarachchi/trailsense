@@ -6,7 +6,6 @@ import { format } from "date-fns";
 
 import { toast } from "sonner";
 
-// TanStack React Table
 import {
   ColumnDef,
   flexRender,
@@ -184,16 +183,13 @@ export default function AdminDashboard({ user }: DashboardProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Alert Dialog States
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: "booking" | "guide" } | null>(null);
 
-  // Confirm Booking State
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<Booking | null>(null);
   const [assignedGuide, setAssignedGuide] = useState<string>("none");
 
-  // Guide States
   const [guidesOpen, setGuidesOpen] = useState(false);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [guideForm, setGuideForm] = useState({ 
@@ -207,10 +203,8 @@ export default function AdminDashboard({ user }: DashboardProps) {
   const [guideError, setGuideError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Chart State
   const [chartTimeframe, setChartTimeframe] = useState<"7d" | "30d">("7d");
 
-  // Data Table States
   const [sorting, setSorting] = useState<SortingState>([{ id: "bookingDate", desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");

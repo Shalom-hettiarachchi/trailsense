@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Mountain, Menu, LogOut, User, LayoutDashboard, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Shadcn Components
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,8 +106,6 @@ export default function Navigation() {
   }, [user?.fullName]);
 
 return (
-    // 1. Wrapper is now just a positioning anchor. It uses pointer-events-none 
-    // so clicks pass through the invisible space around the floating pill.
     <div className="fixed top-0 inset-x-0 z-50 flex justify-center pointer-events-none">
       
       {/* 2. ALL transitions happen on this single nav element */}

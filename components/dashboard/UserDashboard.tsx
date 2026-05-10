@@ -75,7 +75,6 @@ interface UserDashboardProps {
   user: MeUser;
 }
 
-// Helper for status badges
 const getStatusBadge = (status: string) => {
   switch (status.toLowerCase()) {
     case "confirmed": return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20 shadow-none">Confirmed</Badge>;
@@ -219,7 +218,7 @@ export default function UserDashboard({ user }: UserDashboardProps) {
     }
   };
 
-  // --- TanStack Table Column Definitions ---
+  // TanStack Table Column Definitions 
   const columns = useMemo<ColumnDef<Booking>[]>(
     () => [
       {

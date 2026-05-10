@@ -13,9 +13,7 @@ export async function GET(req: Request) {
 
     const bookingId = searchParams.get("bookingId");
 
-    // ============================
     // GET SINGLE BOOKING
-    // ============================
 
     if (bookingId) {
       const b: any = await Booking.findById(bookingId);
@@ -90,9 +88,7 @@ export async function GET(req: Request) {
 
     const bookings = await Booking.find(query).sort({ createdAt: -1 });
 
-    // ============================
     // RETURN BOOKINGS LIST
-    // ============================
 
     return NextResponse.json({
       bookings: bookings.map((b: any) => ({
@@ -297,7 +293,6 @@ export async function POST(req: Request) {
 
       guide: guide || "none",
       
-      // Explicitly set null on creation just to be safe
       assignedGuideId: null,
 
       transport: t,
