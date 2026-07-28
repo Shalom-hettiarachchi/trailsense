@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏕️ TrailSense
 
-## Getting Started
+> **An intelligent full-stack hike planning and gear rental platform.**
 
-First, run the development server:
+TrailSense is a comprehensive application designed to streamline the outdoor adventure experience. Built with a robust full-stack architecture, it provides an intuitive platform for users to plan hikes, rent equipment, and receive personalized trail recommendations through integrated AI capabilities. The project encompasses both web and mobile app interfaces to ensure accessibility on the go.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### ✨ Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+*   **🤖 AI-Powered Chatbot:** An integrated AI assistant that provides users with personalized hike recommendations and trail insights.
+*   **💳 Secure Localized Payments:** Seamless transaction processing for bookings and rentals utilizing the PayHere Payment Gateway.
+*   **🗺️ Interactive Mapping:** Integration with the Google Maps Places API to provide accurate location data and trail discovery.
+*   **🎒 Comprehensive Booking System:** Complex database modeling to accurately calculate and manage specific financial data, including dynamic `hikeFee` and `gearCost` structures.
+*   **🔐 Robust Security & Auth:** Secure user authentication managed via Supabase, backed by strict database schema validations requiring secure handling of credentials (including distinct `password` and `passwordHash` fields).
+*   **📱 Cross-Platform Design:** Fully realized UI/UX designs for both responsive web and mobile application environments.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+### 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+**Frontend**
+*   [Next.js](https://nextjs.org/) (App Router)
+*   [TypeScript](https://www.typescriptlang.org/)
+*   [Shadcn UI](https://ui.shadcn.com/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Backend & Database**
+*   [Node.js](https://nodejs.org/)
+*   [MongoDB](https://www.mongodb.com/)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Third-Party Integrations**
+*   PayHere Payment Gateway
+*   Google Maps Places API
+*   AI API Integration
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 🚀 Getting Started
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To get a local copy up and running, follow these simple steps.
+
+#### Prerequisites
+*   Node.js (v18 or higher recommended)
+*   npm or yarn
+*   MongoDB instance (local or Atlas)
+
+#### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone [https://github.com/Shalom-hettiarachchi/TrailSense.git](https://github.com/Shalom-hettiarachchi/TrailSense.git)
