@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import RentalItem from "@/models/RentalItem";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 export async function POST() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   await connectDB();
 
   const items = [
@@ -11,7 +15,7 @@ export async function POST() {
       name: "Professional Hiking Tent",
       category: "Tent",
       description: "4-season waterproof tent for 2-3 people",
-      imageUrl: "/rentals/tent.jpg",
+      imageUrl: "/rentals/rental-tent.jpg",
       unitPrice: 2000,
     },
     {
@@ -19,7 +23,7 @@ export async function POST() {
       name: "Hiking Backpack 60L",
       category: "Backpack",
       description: "Large capacity backpack with rain cover",
-      imageUrl: "/rentals/backpack.jpg",
+      imageUrl: "/rentals/rental-backpack.jpg",
       unitPrice: 1200,
     },
     {
@@ -27,7 +31,7 @@ export async function POST() {
       name: "Trekking Poles (Pair)",
       category: "Accessories",
       description: "Adjustable aluminum poles with shock absorption",
-      imageUrl: "/rentals/poles.jpg",
+      imageUrl: "/rentals/rental-poles.jpg",
       unitPrice: 650,
     },
     {
@@ -35,7 +39,7 @@ export async function POST() {
       name: "Hiking Boots",
       category: "Footwear",
       description: "Waterproof ankle-support boots",
-      imageUrl: "/rentals/boots.jpg",
+      imageUrl: "/rentals/rental-boots.jpg",
       unitPrice: 950,
     },
   ];

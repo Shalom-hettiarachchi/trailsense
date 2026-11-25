@@ -2,8 +2,21 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Hike from "@/models/Hike";
 import { hikes } from "@/data/hikes";
+import { requireAdmin } from "@/lib/requireAdmin";
+
+// data/hikes.ts builds image URLs with `new URL(..., import.meta.url)`, which on
+// the server resolves to a file:// path inside the build that browsers can't load.
+// The same images are served from /public/hikes, so store that path instead.
+function toPublicImagePath(src: string): string {
+  const file = src.split(/[\/]/).pop() || "";
+  const clean = file.replace(/\.[0-9a-f]{8}(?=\.[a-z]+$)/i, ""); // drop build hash
+  return `/hikes/${clean}`;
+}
 
 export async function POST() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   await connectDB();
 
   try {
@@ -17,7 +30,7 @@ export async function POST() {
       bestSeason: h.bestSeason,
       description: h.description,
       fullDescription: h.fullDescription,
-      imageUrl: h.image,
+      imageUrl: toPublicImagePath(h.image),
       permitRequired: h.permitRequired,
       safetyTips: h.safetyTips || [],
       highlights: h.highlights || [],

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import RentalItem from "@/models/RentalItem";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 // GET /api/rentals?activeOnly=1
 export async function GET(req: Request) {
@@ -39,6 +40,9 @@ export async function GET(req: Request) {
 
 // POST /api/rentals
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   await connectDB();
 
   try {

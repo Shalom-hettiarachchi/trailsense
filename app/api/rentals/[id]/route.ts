@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongoose";
 import RentalItem from "@/models/RentalItem";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 /* ---------------- PATCH (UPDATE) ---------------- */
 
@@ -9,6 +10,9 @@ export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   await connectDB();
 
   try {
@@ -61,6 +65,9 @@ export async function DELETE(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   await connectDB();
 
   try {

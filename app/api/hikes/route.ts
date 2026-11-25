@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Hike from "@/models/Hike";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 // 1. GET ALL HIKES
 export async function GET(req: Request) {
@@ -30,6 +31,9 @@ export async function GET(req: Request) {
 
 // 2. CREATE NEW HIKE
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   await connectDB();
   try {
     const body = await req.json();
